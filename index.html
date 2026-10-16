@@ -3,140 +3,519 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Organise tes révisions, retrouve tes matières et avance à ton rythme.">
-	<title>Révise malin — Accueil</title>
+	<meta name="theme-color" content="#11101a">
+	<title>Révision — Choisir ses matières</title>
+	<style>
+		:root {
+			color-scheme: dark;
+			--bg: #11101a;
+			--panel: #1b1926;
+			--panel-raised: #211f2e;
+			--line: #343143;
+			--text: #f4f1fa;
+			--muted: #aaa5b8;
+			--violet: #a78bfa;
+			--violet-strong: #8b5cf6;
+			--mint: #83e0c1;
+			--rose: #f4a6bd;
+			--sky: #92c9ff;
+			--gold: #f2cc87;
+			font-family: "Avenir Next", Avenir, "Trebuchet MS", sans-serif;
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-width: 320px;
+			min-height: 100vh;
+			margin: 0;
+			color: var(--text);
+			background:
+				radial-gradient(ellipse at 82% 6%, rgb(109 73 181 / 17%), transparent 31rem),
+				radial-gradient(ellipse at 8% 84%, rgb(44 113 128 / 10%), transparent 28rem),
+				var(--bg);
+		}
+
+		button, input { font: inherit; }
+
+		.shell {
+			width: min(100% - 48px, 1056px);
+			margin: 0 auto;
+			padding: 30px 0 126px;
+		}
+
+		.topbar {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding-bottom: 25px;
+			border-bottom: 1px solid rgb(255 255 255 / 8%);
+		}
+
+		.brand {
+			display: flex;
+			align-items: center;
+			gap: 11px;
+			color: var(--text);
+			font-size: 13px;
+			font-weight: 700;
+			letter-spacing: 0;
+			text-decoration: none;
+			text-transform: uppercase;
+		}
+
+		.brand-mark {
+			display: grid;
+			width: 30px;
+			height: 30px;
+			place-items: center;
+			border: 1px solid rgb(167 139 250 / 45%);
+			border-radius: 9px;
+			color: var(--violet);
+			background: rgb(139 92 246 / 12%);
+			font-size: 18px;
+		}
+		.top-note {
+			color: var(--muted);
+			font-size: 12px;
+			letter-spacing: 0;
+		}
+
+		main { padding-top: 65px; }
+
+		.intro {
+			max-width: 650px;
+			margin-bottom: 40px;
+			animation: arrive .55s ease both;
+		}
+
+		.eyebrow {
+			margin: 0 0 13px;
+			color: var(--mint);
+			font-size: 11px;
+			font-weight: 700;
+			letter-spacing: 0;
+			text-transform: uppercase;
+		}
+
+		h1 {
+			margin: 0;
+			font-size: 38px;
+			font-weight: 650;
+			line-height: 1.12;
+			letter-spacing: 0;
+		}
+
+		.lede {
+			margin: 14px 0 0;
+			color: var(--muted);
+			font-size: 16px;
+			line-height: 1.6;
+		}
+
+		.section-heading {
+			display: flex;
+			align-items: end;
+			justify-content: space-between;
+			gap: 16px;
+			margin-bottom: 16px;
+		}
+
+		.section-heading h2 {
+			margin: 0;
+			font-size: 15px;
+			font-weight: 650;
+		}
+
+		.selection-hint {
+			color: var(--muted);
+			font-size: 12px;
+		}
+
+		.subject-grid {
+			display: grid;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			gap: 12px;
+		}
+
+		.subject {
+			position: relative;
+			min-height: 142px;
+			padding: 17px;
+			overflow: hidden;
+			border: 1px solid var(--line);
+			border-radius: 10px;
+			background: linear-gradient(145deg, rgb(255 255 255 / 2%), transparent 75%), var(--panel);
+			cursor: pointer;
+			transition: border-color .18s ease, background-color .18s ease, transform .18s ease;
+			animation: arrive .45s ease both;
+		}
+
+		.subject:nth-child(2) { animation-delay: .04s; }
+		.subject:nth-child(3) { animation-delay: .08s; }
+		.subject:nth-child(4) { animation-delay: .12s; }
+		.subject:nth-child(5) { animation-delay: .16s; }
+		.subject:nth-child(6) { animation-delay: .20s; }
+		.subject:nth-child(7) { animation-delay: .24s; }
+		.subject:nth-child(8) { animation-delay: .28s; }
+
+		.subject:hover {
+			border-color: #61577e;
+			background-color: var(--panel-raised);
+			transform: translateY(-2px);
+		}
+
+		.subject:has(input:checked) {
+			border-color: var(--violet-strong);
+			background: linear-gradient(145deg, rgb(139 92 246 / 15%), transparent 80%), #211d30;
+			box-shadow: inset 0 0 0 1px rgb(167 139 250 / 15%);
+		}
+
+		.subject:focus-within { outline: 2px solid var(--violet); outline-offset: 3px; }
+
+		.subject input {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			opacity: 0;
+		}
+
+		.subject-top {
+			display: flex;
+			align-items: flex-start;
+			justify-content: space-between;
+		}
+
+		.subject-mark {
+			display: grid;
+			width: 38px;
+			height: 38px;
+			place-items: center;
+			border-radius: 9px;
+			font-size: 17px;
+			font-weight: 700;
+		}
+
+		.mark-violet { color: #d1c0ff; background: rgb(139 92 246 / 17%); }
+		.mark-rose { color: #ffc3d2; background: rgb(244 166 189 / 14%); }
+		.mark-sky { color: #b9ddff; background: rgb(146 201 255 / 14%); }
+		.mark-gold { color: #f8dca8; background: rgb(242 204 135 / 14%); }
+		.mark-mint { color: #a8f1d9; background: rgb(131 224 193 / 14%); }
+
+		.checkmark {
+			display: grid;
+			width: 20px;
+			height: 20px;
+			place-items: center;
+			border: 1px solid #514c60;
+			border-radius: 6px;
+			color: transparent;
+			font-size: 13px;
+			transition: .18s ease;
+		}
+
+		.subject:has(input:checked) .checkmark {
+			border-color: var(--violet-strong);
+			color: white;
+			background: var(--violet-strong);
+		}
+
+		.subject-name {
+			display: block;
+			margin-top: 19px;
+			font-size: 15px;
+			font-weight: 650;
+		}
+
+		.subject-detail {
+			display: block;
+			margin-top: 4px;
+			color: var(--muted);
+			font-size: 11px;
+		}
+
+		.bottom-bar {
+			position: fixed;
+			z-index: 2;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+			border-top: 1px solid rgb(255 255 255 / 9%);
+			background: rgb(17 16 26 / 92%);
+			backdrop-filter: blur(16px);
+		}
+
+		.bottom-inner {
+			display: flex;
+			width: min(100%, 1056px);
+			align-items: center;
+			justify-content: space-between;
+			gap: 16px;
+			margin: 0 auto;
+		}
+
+		.count-block { display: flex; align-items: baseline; gap: 8px; }
+		.count { color: var(--text); font-size: 20px; font-weight: 700; }
+		.count-label { color: var(--muted); font-size: 13px; }
+
+		.actions { display: flex; align-items: center; gap: 12px; }
+
+		.clear-button, .primary-button, .back-button {
+			min-height: 44px;
+			border: 0;
+			border-radius: 8px;
+			cursor: pointer;
+			font-size: 13px;
+			font-weight: 650;
+			transition: background .18s ease, opacity .18s ease, transform .18s ease;
+		}
+
+		.clear-button, .back-button { padding: 0 14px; color: var(--muted); background: transparent; }
+		.clear-button:hover, .back-button:hover { color: var(--text); background: rgb(255 255 255 / 6%); }
+
+		.primary-button {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 12px;
+			min-width: 178px;
+			padding: 0 18px;
+			color: #fff;
+			background: linear-gradient(110deg, #7651d6, #8b5cf6);
+			box-shadow: 0 6px 20px rgb(115 76 211 / 22%);
+		}
+
+		.primary-button:hover:not(:disabled) { background: linear-gradient(110deg, #8664e4, #9b74ff); transform: translateY(-1px); }
+		.primary-button:disabled { cursor: not-allowed; opacity: .42; box-shadow: none; }
+		.primary-button .arrow { font-size: 18px; font-weight: 400; }
+
+		.confirmation {
+			max-width: 680px;
+			padding: 27px;
+			border: 1px solid var(--line);
+			border-radius: 12px;
+			background: linear-gradient(145deg, rgb(139 92 246 / 10%), transparent 75%), var(--panel);
+			animation: arrive .3s ease both;
+		}
+
+		.confirmation-icon {
+			display: grid;
+			width: 42px;
+			height: 42px;
+			place-items: center;
+			border-radius: 12px;
+			color: var(--mint);
+			background: rgb(131 224 193 / 12%);
+			font-size: 20px;
+		}
+
+		.confirmation h2 { margin: 20px 0 7px; font-size: 23px; }
+		.confirmation p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+		.chosen-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0 0; padding: 0; list-style: none; }
+		.chosen-list li { padding: 8px 11px; border: 1px solid #4c4264; border-radius: 7px; color: #e4d8ff; background: rgb(139 92 246 / 10%); font-size: 12px; }
+
+		[hidden] { display: none !important; }
+
+		@keyframes arrive {
+			from { opacity: 0; transform: translateY(8px); }
+			to { opacity: 1; transform: translateY(0); }
+		}
+
+		@media (max-width: 760px) {
+			.shell { width: min(100% - 36px, 600px); padding-top: 20px; }
+			main { padding-top: 44px; }
+			.subject-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+			.subject { min-height: 132px; padding: 14px; }
+			.subject-name { margin-top: 16px; }
+			.bottom-bar { padding-right: 18px; padding-left: 18px; }
+		}
+
+		@media (max-width: 420px) {
+			.shell { width: calc(100% - 28px); }
+			.top-note { font-size: 10px; }
+			.intro { margin-bottom: 30px; }
+			.lede { font-size: 14px; }
+			.section-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+			.bottom-inner { align-items: center; gap: 8px; }
+			.count-block { align-items: flex-start; flex-direction: column; gap: 1px; }
+			.count { font-size: 18px; }
+			.count-label { font-size: 11px; }
+			.actions { gap: 2px; }
+			.clear-button { padding: 0 9px; font-size: 12px; }
+			.primary-button { min-width: 0; padding: 0 12px; font-size: 12px; }
+		}
+
+		@media (prefers-reduced-motion: reduce) {
+			*, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+		}
+	</style>
 </head>
 <body>
-	<header>
-		<p><a href="#accueil">Révise malin</a></p>
-		<nav aria-label="Navigation principale">
-			<ul>
-				<li><a href="#matieres">Mes matières</a></li>
-				<li><a href="#planning">Planning</a></li>
-				<li><a href="#methode">Ma méthode</a></li>
-			</ul>
-		</nav>
-	</header>
+	<div class="shell">
+		<header class="topbar">
+			<a class="brand" href="#" aria-label="Révision, accueil">
+				<span class="brand-mark" aria-hidden="true">✳</span>
+				<span>Le bon rythme</span>
+			</a>
+			<span class="top-note">ESPACE DE RÉVISION</span>
+		</header>
 
-	<main id="accueil">
-		<section aria-labelledby="bienvenue">
-			<h1 id="bienvenue">Tes révisions, un pas après l’autre.</h1>
-			<p>Choisis une matière, fixe-toi un objectif et prends le temps de progresser.</p>
-			<p><a href="#matieres">Choisir une matière</a></p>
-		</section>
+		<main>
+			<section class="intro" aria-labelledby="page-title">
+				<p class="eyebrow">On s’y met ?</p>
+				<h1 id="page-title">Qu’est-ce qu’on révise&nbsp;?</h1>
+				<p class="lede">Choisis les matières que tu veux travailler aujourd’hui.</p>
+			</section>
 
-		<section id="matieres" aria-labelledby="titre-matieres">
-			<h2 id="titre-matieres">Mes matières</h2>
-			<p>Par quoi veux-tu commencer aujourd’hui ?</p>
-			<ul>
-				<li>
-					<h3>Maths</h3>
-					<p>Formules, exercices et résolution de problèmes.</p>
-					<a href="#planning">Planifier une séance de maths</a>
-				</li>
-				<li>
-					<h3>Français</h3>
-					<p>Grammaire, orthographe, lecture et rédaction.</p>
-					<a href="#planning">Planifier une séance de français</a>
-				</li>
-				<li>
-					<h3>Anglais</h3>
-					<p>Vocabulaire, compréhension et expression.</p>
-					<a href="#planning">Planifier une séance d’anglais</a>
-				</li>
-				<li>
-					<h3>Physique-chimie</h3>
-					<p>Notions scientifiques, expériences et exercices.</p>
-					<a href="#planning">Planifier une séance de physique-chimie</a>
-				</li>
-				<li>
-					<h3>Histoire-géo</h3>
-					<p>Repères, dates, cartes et événements importants.</p>
-					<a href="#planning">Planifier une séance d’histoire-géo</a>
-				</li>
-				<li>
-					<h3>Espagnol</h3>
-					<p>Vocabulaire, compréhension et expression.</p>
-					<a href="#planning">Planifier une séance d’espagnol</a>
-				</li>
-				<li>
-					<h3>ES SVT</h3>
-					<p>Réviser les notions de SVT et les exemples du cours.</p>
-					<a href="#planning">Planifier une séance d’ES SVT</a>
-				</li>
-				<li>
-					<h3>ES physique</h3>
-					<p>Revoir les notions et méthodes de physique.</p>
-					<a href="#planning">Planifier une séance d’ES physique</a>
-				</li>
-			</ul>
-		</section>
+			<form id="subject-form">
+				<section id="selection-view" aria-labelledby="subjects-title">
+					<div class="section-heading">
+						<h2 id="subjects-title">Tes matières</h2>
+						<span class="selection-hint">Tu peux en choisir plusieurs</span>
+					</div>
+					<div class="subject-grid">
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Maths">
+							<span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">∑</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Maths</span>
+							<span class="subject-detail">Logique &amp; calcul</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Français">
+							<span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Aa</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Français</span>
+							<span class="subject-detail">Langue &amp; littérature</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Anglais">
+							<span class="subject-top"><span class="subject-mark mark-sky" aria-hidden="true">A↗</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Anglais</span>
+							<span class="subject-detail">English practice</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Histoire">
+							<span class="subject-top"><span class="subject-mark mark-gold" aria-hidden="true">⌛</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Histoire</span>
+							<span class="subject-detail">Époques &amp; repères</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Physique">
+							<span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">◉</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Physique</span>
+							<span class="subject-detail">Matière &amp; énergie</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="Espagnol">
+							<span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Ñ</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">Espagnol</span>
+							<span class="subject-detail">Español practice</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="ES physique">
+							<span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">E·P</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">ES physique</span>
+							<span class="subject-detail">Enseignement scientifique</span>
+						</label>
+						<label class="subject">
+							<input type="checkbox" name="subject" value="ES SVT">
+							<span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">E·S</span><span class="checkmark" aria-hidden="true">✓</span></span>
+							<span class="subject-name">ES SVT</span>
+							<span class="subject-detail">Enseignement scientifique</span>
+						</label>
+					</div>
+				</section>
 
-		<section id="planning" aria-labelledby="titre-planning">
-			<h2 id="titre-planning">Mon planning de révision</h2>
-			<p>Un exemple de semaine à adapter selon tes besoins.</p>
-			<table>
-				<caption>Idées de séances pour la semaine</caption>
-				<thead>
-					<tr>
-						<th scope="col">Jour</th>
-						<th scope="col">Séance</th>
-						<th scope="col">Objectif</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr>
-						<th scope="row">Lundi</th>
-						<td>Maths</td>
-						<td>Revoir une leçon et faire trois exercices</td>
-					</tr>
-					<tr>
-						<th scope="row">Mardi</th>
-						<td>Français</td>
-						<td>Réviser une règle de grammaire</td>
-					</tr>
-					<tr>
-						<th scope="row">Mercredi</th>
-						<td>Anglais</td>
-						<td>Faire une fiche de notions clés</td>
-					</tr>
-					<tr>
-						<th scope="row">Jeudi</th>
-						<td>Histoire-géo</td>
-						<td>Revoir une carte ou une chronologie</td>
-					</tr>
-					<tr>
-						<th scope="row">Vendredi</th>
-						<td>Espagnol</td>
-						<td>Apprendre dix mots et les réutiliser</td>
-					</tr>
-					<tr>
-						<th scope="row">Samedi</th>
-						<td>Physique-chimie</td>
-						<td>Revoir une notion et refaire un exercice</td>
-					</tr>
-					<tr>
-						<th scope="row">Dimanche</th>
-						<td>ES SVT et ES physique</td>
-						<td>Relire les fiches et tester ses connaissances</td>
-					</tr>
-				</tbody>
-			</table>
-		</section>
+				<section id="confirmation-view" class="confirmation" aria-live="polite" hidden>
+					<span class="confirmation-icon" aria-hidden="true">✓</span>
+					<h2>Ta sélection est prête</h2>
+					<p id="confirmation-copy"></p>
+					<ul id="chosen-list" class="chosen-list"></ul>
+					<button class="back-button" id="edit-selection" type="button">← Modifier ma sélection</button>
+				</section>
 
-		<section id="methode" aria-labelledby="titre-methode">
-			<h2 id="titre-methode">Une méthode simple</h2>
-			<ol>
-				<li>Choisis une seule notion à travailler.</li>
-				<li>Révise-la pendant une courte séance concentrée.</li>
-				<li>Ferme ton cours et essaie de restituer ce que tu as retenu.</li>
-				<li>Note ce qui reste à revoir pour la prochaine fois.</li>
-			</ol>
-		</section>
-	</main>
+				<div class="bottom-bar" id="bottom-bar">
+					<div class="bottom-inner">
+						<div class="count-block" aria-live="polite">
+							<span class="count" id="selected-count">0</span>
+							<span class="count-label" id="count-label">matière sélectionnée</span>
+						</div>
+						<div class="actions">
+							<button class="clear-button" id="clear-selection" type="button">Tout effacer</button>
+							<button class="primary-button" id="confirm-selection" type="submit" disabled>
+								<span>Confirmer</span><span class="arrow" aria-hidden="true">→</span>
+							</button>
+						</div>
+					</div>
+				</div>
+			</form>
+		</main>
+	</div>
 
-	<footer>
-		<p>Fais de ton mieux, et pense à faire une pause.</p>
-	</footer>
+	<script>
+		const form = document.querySelector("#subject-form");
+		const checkboxes = [...form.querySelectorAll('input[name="subject"]')];
+		const count = document.querySelector("#selected-count");
+		const countLabel = document.querySelector("#count-label");
+		const confirmButton = document.querySelector("#confirm-selection");
+		const selectionView = document.querySelector("#selection-view");
+		const confirmationView = document.querySelector("#confirmation-view");
+		const bottomBar = document.querySelector("#bottom-bar");
+		const storageKey = "revision-selected-subjects";
+
+		try {
+			const savedSubjects = JSON.parse(localStorage.getItem(storageKey) || "[]");
+			checkboxes.forEach((checkbox) => {
+				checkbox.checked = savedSubjects.includes(checkbox.value);
+			});
+		} catch {
+			localStorage.removeItem(storageKey);
+		}
+
+		function getSelectedSubjects() {
+			return checkboxes.filter((checkbox) => checkbox.checked).map((checkbox) => checkbox.value);
+		}
+
+		function updateSelection() {
+			const selected = getSelectedSubjects();
+			count.textContent = selected.length;
+			countLabel.textContent = selected.length === 1 ? "matière sélectionnée" : "matières sélectionnées";
+			confirmButton.disabled = selected.length === 0;
+			localStorage.setItem(storageKey, JSON.stringify(selected));
+		}
+
+		checkboxes.forEach((checkbox) => checkbox.addEventListener("change", updateSelection));
+		updateSelection();
+
+		document.querySelector("#clear-selection").addEventListener("click", () => {
+			checkboxes.forEach((checkbox) => { checkbox.checked = false; });
+			updateSelection();
+		});
+
+		form.addEventListener("submit", (event) => {
+			event.preventDefault();
+			const selected = getSelectedSubjects();
+			if (selected.length === 0) return;
+			document.querySelector("#confirmation-copy").textContent =
+				`${selected.length} ${selected.length === 1 ? "matière choisie" : "matières choisies"} pour ta prochaine session.`;
+			const list = document.querySelector("#chosen-list");
+			list.replaceChildren(...selected.map((subject) => {
+				const item = document.createElement("li");
+				item.textContent = subject;
+				return item;
+			}));
+			selectionView.hidden = true;
+			confirmationView.hidden = false;
+			bottomBar.hidden = true;
+			document.querySelector("#page-title").textContent = "C’est parti.";
+		});
+
+		document.querySelector("#edit-selection").addEventListener("click", () => {
+			confirmationView.hidden = true;
+			selectionView.hidden = false;
+			bottomBar.hidden = false;
+			document.querySelector("#page-title").innerHTML = "Qu’est-ce qu’on révise&nbsp;?";
+		});
+	</script>
 </body>
 </html>
