@@ -140,6 +140,7 @@
 
 		.subject {
 			position: relative;
+			display: block;
 			min-height: 142px;
 			padding: 17px;
 			overflow: hidden;
@@ -173,11 +174,52 @@
 
 		.subject:focus-within { outline: 2px solid var(--violet); outline-offset: 3px; }
 
+		.subject-link {
+			position: absolute;
+			inset: 0;
+			display: block;
+			padding: inherit;
+			color: inherit;
+			text-decoration: none;
+		}
+
 		.subject input {
 			position: absolute;
-			width: 1px;
-			height: 1px;
+			z-index: 2;
+			top: 13px;
+			right: 13px;
+			width: 28px;
+			height: 28px;
+			margin: 0;
 			opacity: 0;
+			cursor: pointer;
+		}
+
+		.subject .checkmark {
+			position: absolute;
+			top: 17px;
+			right: 17px;
+			pointer-events: none;
+		}
+
+		.subject-arrow {
+			position: absolute;
+			right: 17px;
+			bottom: 17px;
+			color: var(--violet);
+			font-size: 18px;
+			transition: transform .18s ease;
+		}
+
+		.subject:hover .subject-arrow { transform: translateX(3px); }
+
+		.subject-select-label {
+			position: absolute;
+			top: 13px;
+			right: 13px;
+			width: 28px;
+			height: 28px;
+			cursor: pointer;
 		}
 
 		.subject-top {
@@ -233,6 +275,13 @@
 			color: var(--muted);
 			font-size: 11px;
 		}
+
+		.detail-view {
+			max-width: 760px;
+			animation: arrive .35s ease both;
+		}
+
+		.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 		.bottom-bar {
 			position: fixed;
@@ -328,6 +377,9 @@
 			.subject-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 			.subject { min-height: 132px; padding: 14px; }
 			.subject-name { margin-top: 16px; }
+			.subject input { top: 10px; right: 10px; }
+			.subject .checkmark { top: 14px; right: 14px; }
+			.subject-arrow { right: 14px; bottom: 14px; }
 			.bottom-bar { padding-right: 18px; padding-left: 18px; }
 		}
 
@@ -354,76 +406,54 @@
 <body>
 	<div class="shell">
 		<header class="topbar">
-			<a class="brand" href="#" aria-label="Révision, accueil">
-				<span class="brand-mark" aria-hidden="true">✳</span>
-				<span>Le bon rythme</span>
-			</a>
 			<span class="top-note">ESPACE DE RÉVISION</span>
 		</header>
 
 		<main>
-			<section class="intro" aria-labelledby="page-title">
-				<p class="eyebrow">On s’y met ?</p>
-				<h1 id="page-title">Qu’est-ce qu’on révise&nbsp;?</h1>
-				<p class="lede">Choisis les matières que tu veux travailler aujourd’hui.</p>
-			</section>
 
 			<form id="subject-form">
 				<section id="selection-view" aria-labelledby="subjects-title">
 					<div class="section-heading">
 						<h2 id="subjects-title">Tes matières</h2>
-						<span class="selection-hint">Tu peux en choisir plusieurs</span>
 					</div>
 					<div class="subject-grid">
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Maths">
-							<span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">∑</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Maths</span>
-							<span class="subject-detail">Logique &amp; calcul</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Français">
-							<span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Aa</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Français</span>
-							<span class="subject-detail">Langue &amp; littérature</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Anglais">
-							<span class="subject-top"><span class="subject-mark mark-sky" aria-hidden="true">A↗</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Anglais</span>
-							<span class="subject-detail">English practice</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Histoire">
-							<span class="subject-top"><span class="subject-mark mark-gold" aria-hidden="true">⌛</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Histoire</span>
-							<span class="subject-detail">Époques &amp; repères</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Physique">
-							<span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">◉</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Physique</span>
-							<span class="subject-detail">Matière &amp; énergie</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="Espagnol">
-							<span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Ñ</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">Espagnol</span>
-							<span class="subject-detail">Español practice</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="ES physique">
-							<span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">E·P</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">ES physique</span>
-							<span class="subject-detail">Enseignement scientifique</span>
-						</label>
-						<label class="subject">
-							<input type="checkbox" name="subject" value="ES SVT">
-							<span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">E·S</span><span class="checkmark" aria-hidden="true">✓</span></span>
-							<span class="subject-name">ES SVT</span>
-							<span class="subject-detail">Enseignement scientifique</span>
-						</label>
+						<article class="subject">
+							<a class="subject-link" href="#maths"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">∑</span></span><span class="subject-name">Maths</span><span class="subject-detail">Logique &amp; calcul</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Maths"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Maths</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#francais"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Aa</span></span><span class="subject-name">Français</span><span class="subject-detail">Langue &amp; littérature</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Français"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Français</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#anglais"><span class="subject-top"><span class="subject-mark mark-sky" aria-hidden="true">A↗</span></span><span class="subject-name">Anglais</span><span class="subject-detail">English practice</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Anglais"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Anglais</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#histoire"><span class="subject-top"><span class="subject-mark mark-gold" aria-hidden="true">⌛</span></span><span class="subject-name">Histoire</span><span class="subject-detail">Époques &amp; repères</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Histoire"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Histoire</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#physique"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">◉</span></span><span class="subject-name">Physique</span><span class="subject-detail">Matière &amp; énergie</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Physique"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Physique</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#espagnol"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Ñ</span></span><span class="subject-name">Espagnol</span><span class="subject-detail">Español practice</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="Espagnol"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner Espagnol</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#es-physique"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">E·P</span></span><span class="subject-name">ES physique</span><span class="subject-detail">Enseignement scientifique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="ES physique"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner ES physique</span></label>
+						</article>
+						<article class="subject">
+							<a class="subject-link" href="#es-svt"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">E·S</span></span><span class="subject-name">ES SVT</span><span class="subject-detail">Enseignement scientifique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<label class="subject-select-label"><input type="checkbox" name="subject" value="ES SVT"><span class="checkmark" aria-hidden="true">✓</span><span class="visually-hidden">Sélectionner ES SVT</span></label>
+						</article>
 					</div>
+				</section>
+
+				<section id="subject-detail-view" class="detail-view" aria-labelledby="detail-title" hidden>
+					<h1 id="detail-title"></h1>
 				</section>
 
 				<section id="confirmation-view" class="confirmation" aria-live="polite" hidden>
@@ -459,9 +489,21 @@
 		const countLabel = document.querySelector("#count-label");
 		const confirmButton = document.querySelector("#confirm-selection");
 		const selectionView = document.querySelector("#selection-view");
+		const subjectDetailView = document.querySelector("#subject-detail-view");
 		const confirmationView = document.querySelector("#confirmation-view");
 		const bottomBar = document.querySelector("#bottom-bar");
+		const topbar = document.querySelector(".topbar");
 		const storageKey = "revision-selected-subjects";
+		const subjects = {
+			maths: "Maths",
+			francais: "Français",
+			anglais: "Anglais",
+			histoire: "Histoire",
+			physique: "Physique",
+			espagnol: "Espagnol",
+			"es-physique": "ES physique",
+			"es-svt": "ES SVT"
+		};
 
 		try {
 			const savedSubjects = JSON.parse(localStorage.getItem(storageKey) || "[]");
@@ -482,6 +524,31 @@
 			countLabel.textContent = selected.length === 1 ? "matière sélectionnée" : "matières sélectionnées";
 			confirmButton.disabled = selected.length === 0;
 			localStorage.setItem(storageKey, JSON.stringify(selected));
+		}
+
+		function showSubject(subject) {
+			document.querySelector("#detail-title").textContent = subject;
+			selectionView.hidden = true;
+			confirmationView.hidden = true;
+			bottomBar.hidden = true;
+			topbar.hidden = true;
+			subjectDetailView.hidden = false;
+			document.title = `${subject} — Révision`;
+		}
+
+		function showHome() {
+			subjectDetailView.hidden = true;
+			confirmationView.hidden = true;
+			selectionView.hidden = false;
+			bottomBar.hidden = false;
+			topbar.hidden = false;
+			document.title = "Révision — Choisir ses matières";
+		}
+
+		function syncRoute() {
+			const subject = subjects[decodeURIComponent(location.hash.slice(1))];
+			if (subject) showSubject(subject);
+			else showHome();
 		}
 
 		checkboxes.forEach((checkbox) => checkbox.addEventListener("change", updateSelection));
@@ -507,15 +574,16 @@
 			selectionView.hidden = true;
 			confirmationView.hidden = false;
 			bottomBar.hidden = true;
-			document.querySelector("#page-title").textContent = "C’est parti.";
 		});
 
 		document.querySelector("#edit-selection").addEventListener("click", () => {
 			confirmationView.hidden = true;
 			selectionView.hidden = false;
 			bottomBar.hidden = false;
-			document.querySelector("#page-title").innerHTML = "Qu’est-ce qu’on révise&nbsp;?";
 		});
+
+		window.addEventListener("hashchange", syncRoute);
+		syncRoute();
 	</script>
 </body>
 </html>
