@@ -260,6 +260,29 @@
 		}
 
 		.chapter-tabpanel:focus-visible { outline: 2px solid var(--violet); outline-offset: 4px; }
+
+		.course-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+		.course-toolbar h2 { margin: 0; font-size: 19px; font-weight: 650; }
+		.course-add { min-width: 0; min-height: 44px; }
+		.course-empty { margin: 0; padding: 20px 16px; border: 1px dashed #514c60; border-radius: 8px; color: var(--muted); font-size: 15px; }
+		.course-status { margin: 0 0 12px; color: var(--mint); font-size: 14px; }
+		.course-items { display: grid; gap: 14px; }
+		.course-entry { display: grid; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / 2%); }
+		.course-entry-text { margin: 0; color: var(--text); font-size: 16px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+		.course-entry-image { display: block; max-width: 100%; max-height: 680px; border-radius: 6px; object-fit: contain; object-position: left; }
+		.course-entry-caption { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+		.course-entry-remove { justify-self: end; min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 13px; }
+		.course-entry-remove:hover { border-color: #9f596a; color: #ffc3d2; }
+		.course-dialog { width: min(100% - 32px, 600px); }
+		.course-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: #14121d; }
+		.course-mode { min-height: 42px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; }
+		.course-mode[aria-pressed="true"] { color: var(--text); background: #343044; }
+		.course-field { display: grid; gap: 10px; }
+		.course-textarea { width: 100%; min-height: 240px; padding: 12px; border: 1px solid #514c60; border-radius: 7px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 16px; line-height: 1.5; resize: vertical; }
+		.course-textarea:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		.course-file { min-height: 46px; color: var(--muted); font-size: 14px; }
+		.course-preview { display: block; max-width: 100%; max-height: 300px; border: 1px solid var(--line); border-radius: 7px; object-fit: contain; object-position: left; }
+		.course-error { min-height: 0; color: #ffc3d2 !important; font-size: 14px !important; }
 		.detail-home-button {
 			flex: 0 0 auto;
 			min-height: 44px;
@@ -464,6 +487,10 @@
 			.chapter-actions { width: 100%; }
 			.chapter-action { flex: 1; }
 			.chapter-dialog-content { padding: 20px; }
+			.course-toolbar { align-items: flex-start; flex-direction: column; }
+			.course-add { width: 100%; }
+			.course-entry { padding: 14px; }
+			.course-textarea { min-height: 200px; }
 			.backup-fab { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 52px; height: 52px; }
 			.backup-actions, .backup-import-actions { flex-direction: column; }
 			.backup-actions button, .backup-import-actions button { width: 100%; }
@@ -532,7 +559,15 @@
 						<button id="chapter-tab-ressources" class="chapter-tab" type="button" role="tab" aria-controls="chapter-panel-ressources" aria-selected="false" tabindex="-1">Ressources</button>
 						<button id="chapter-tab-revision" class="chapter-tab" type="button" role="tab" aria-controls="chapter-panel-revision" aria-selected="false" tabindex="-1">Révision</button>
 					</div>
-					<section id="chapter-panel-saisie" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-saisie" tabindex="0"></section>
+					<section id="chapter-panel-saisie" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-saisie" tabindex="0">
+						<div class="course-toolbar">
+							<h2>Mon cours</h2>
+							<button id="add-course" class="primary-button course-add" type="button">+ Ajouter du cours</button>
+						</div>
+						<p id="course-status" class="course-status" aria-live="polite"></p>
+						<p id="course-empty" class="course-empty">Aucun cours pour ce chapitre.</p>
+						<div id="course-items" class="course-items"></div>
+					</section>
 					<section id="chapter-panel-ressources" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-ressources" tabindex="0" hidden></section>
 					<section id="chapter-panel-revision" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-revision" tabindex="0" hidden></section>
 				</section>
@@ -588,6 +623,30 @@
 		</div>
 	</dialog>
 
+	<dialog id="course-dialog" class="chapter-dialog course-dialog" aria-labelledby="course-dialog-title">
+		<form id="course-form" class="chapter-dialog-content">
+			<h2 id="course-dialog-title">Ajouter du cours</h2>
+			<div class="course-mode-switch" role="group" aria-label="Type de cours">
+				<button id="course-mode-text" class="course-mode" type="button" aria-pressed="true">Texte</button>
+				<button id="course-mode-photo" class="course-mode" type="button" aria-pressed="false">Photo</button>
+			</div>
+			<div id="course-text-field" class="course-field">
+				<label for="course-text">Texte du cours</label>
+				<textarea id="course-text" class="course-textarea" maxlength="30000" placeholder="Saisis ou colle ton cours ici…"></textarea>
+			</div>
+			<div id="course-photo-field" class="course-field" hidden>
+				<label for="course-photo">Photo du cours</label>
+				<input id="course-photo" class="course-file" type="file" accept="image/*" capture="environment">
+				<img id="course-photo-preview" class="course-preview" alt="Aperçu de la photo sélectionnée" hidden>
+			</div>
+			<p id="course-error" class="course-error" role="status" aria-live="polite"></p>
+			<div class="chapter-dialog-actions">
+				<button id="cancel-course" class="clear-button chapter-cancel" type="button">Annuler</button>
+				<button id="save-course" class="primary-button" type="submit">Ajouter au chapitre</button>
+			</div>
+		</form>
+	</dialog>
+
 	<script>
 		const selectionView = document.querySelector("#selection-view");
 		const subjectDetailView = document.querySelector("#subject-detail-view");
@@ -602,6 +661,18 @@
 		const chapterReturnButton = document.querySelector("#chapter-return-button");
 		const chapterTabs = [...document.querySelectorAll(".chapter-tab")];
 		const chapterTabList = document.querySelector('[role="tablist"]');
+		const courseList = document.querySelector("#course-items");
+		const courseEmpty = document.querySelector("#course-empty");
+		const courseStatus = document.querySelector("#course-status");
+		const courseDialog = document.querySelector("#course-dialog");
+		const courseForm = document.querySelector("#course-form");
+		const courseTextInput = document.querySelector("#course-text");
+		const coursePhotoInput = document.querySelector("#course-photo");
+		const coursePhotoPreview = document.querySelector("#course-photo-preview");
+		const courseError = document.querySelector("#course-error");
+		const courseTextField = document.querySelector("#course-text-field");
+		const coursePhotoField = document.querySelector("#course-photo-field");
+		const courseSaveButton = document.querySelector("#save-course");
 		const backupStorageFormat = "revision-subjects-backup";
 		const backupButton = document.querySelector("#backup-button");
 		const backupDialog = document.querySelector("#backup-dialog");
@@ -622,6 +693,10 @@
 		let chaptersBySubject = {};
 		let activeChapterId = null;
 		let pendingImportedChapters = null;
+		let activeCourseSubjectKey = null;
+		let activeCourseChapterId = null;
+		let activeCourseMode = "text";
+		let coursePhotoPreviewUrl = null;
 
 		try {
 			const savedChapters = JSON.parse(localStorage.getItem(chaptersStorageKey) || "{}");
@@ -645,7 +720,10 @@
 		function showChapter(chapter, subjectKey) {
 			chapterDetailTitle.textContent = chapter.title;
 			chapterReturnButton.dataset.subject = subjectKey;
+			activeCourseSubjectKey = subjectKey;
+			activeCourseChapterId = chapter.id;
 			selectChapterTab(chapterTabs[0]);
+			renderCourseItems();
 			selectionView.hidden = true;
 			subjectDetailView.hidden = true;
 			chapterDetailView.hidden = false;
@@ -661,6 +739,91 @@
 				document.querySelector(`#${tab.getAttribute("aria-controls")}`).hidden = !selected;
 			});
 			if (focusTab) selectedTab.focus();
+		}
+
+		function getActiveCourseChapter() {
+			const chapters = chaptersBySubject[activeCourseSubjectKey] || [];
+			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
+		}
+
+		function renderCourseItems() {
+			const chapter = getActiveCourseChapter();
+			const items = Array.isArray(chapter?.courseItems) ? chapter.courseItems : [];
+			courseList.replaceChildren(...items.map((item) => {
+				const entry = document.createElement("article");
+				entry.className = "course-entry";
+				if (item.type === "text") {
+					const text = document.createElement("p");
+					text.className = "course-entry-text";
+					text.textContent = item.content;
+					entry.append(text);
+				} else if (item.type === "image") {
+					const image = document.createElement("img");
+					image.className = "course-entry-image";
+					image.src = item.content;
+					image.alt = item.name || "Photo de cours";
+					entry.append(image);
+					if (item.name) {
+						const caption = document.createElement("p");
+						caption.className = "course-entry-caption";
+						caption.textContent = item.name;
+						entry.append(caption);
+					}
+				}
+
+				const removeButton = document.createElement("button");
+				removeButton.type = "button";
+				removeButton.className = "course-entry-remove";
+				removeButton.dataset.courseId = item.id;
+				removeButton.textContent = "Supprimer";
+				entry.append(removeButton);
+				return entry;
+			}));
+			courseEmpty.hidden = items.length > 0;
+		}
+
+		function setCourseMode(mode) {
+			activeCourseMode = mode;
+			const textSelected = mode === "text";
+			document.querySelector("#course-mode-text").setAttribute("aria-pressed", String(textSelected));
+			document.querySelector("#course-mode-photo").setAttribute("aria-pressed", String(!textSelected));
+			courseTextField.hidden = !textSelected;
+			coursePhotoField.hidden = textSelected;
+			courseError.textContent = "";
+		}
+
+		function releaseCoursePreview() {
+			if (coursePhotoPreviewUrl) URL.revokeObjectURL(coursePhotoPreviewUrl);
+			coursePhotoPreviewUrl = null;
+			coursePhotoPreview.removeAttribute("src");
+			coursePhotoPreview.hidden = true;
+		}
+
+		function openCourseDialog() {
+			courseForm.reset();
+			courseError.textContent = "";
+			releaseCoursePreview();
+			setCourseMode("text");
+			courseDialog.showModal();
+			courseTextInput.focus();
+		}
+
+		async function compressCoursePhoto(file) {
+			if (!file || !file.type.startsWith("image/")) throw new Error("Choisis un fichier image.");
+			const bitmap = await createImageBitmap(file);
+			const maxSide = 1600;
+			const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+			const canvas = document.createElement("canvas");
+			canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+			canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+			const context = canvas.getContext("2d");
+			context.fillStyle = "#ffffff";
+			context.fillRect(0, 0, canvas.width, canvas.height);
+			context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+			bitmap.close();
+			const content = canvas.toDataURL("image/jpeg", 0.78);
+			if (content.length > 1_800_000) throw new Error("Cette image est trop volumineuse. Choisis-en une plus légère.");
+			return content;
 		}
 
 		function renderChapters() {
@@ -755,7 +918,22 @@
 						throw new Error("chapter");
 					}
 					chapterIds.add(chapter.id);
-					return { id: chapter.id, title: chapter.title.trim() };
+					const courseItemIds = new Set();
+					const courseItems = (chapter.courseItems || []).map((courseItem) => {
+						if (!courseItem || typeof courseItem.id !== "string" || !courseItem.id || courseItemIds.has(courseItem.id)) {
+							throw new Error("course-item");
+						}
+						courseItemIds.add(courseItem.id);
+						if (courseItem.type === "text" && typeof courseItem.content === "string" && courseItem.content.trim() && courseItem.content.length <= 30000) {
+							return { id: courseItem.id, type: "text", content: courseItem.content };
+						}
+						if (courseItem.type === "image" && typeof courseItem.content === "string" && /^data:image\/jpeg;base64,/.test(courseItem.content) && courseItem.content.length <= 1_800_000 && typeof courseItem.name === "string") {
+							return { id: courseItem.id, type: "image", content: courseItem.content, name: courseItem.name.slice(0, 255) };
+						}
+						throw new Error("course-item");
+					});
+					if (chapter.courseItems !== undefined && !Array.isArray(chapter.courseItems)) throw new Error("course-items");
+					return { id: chapter.id, title: chapter.title.trim(), courseItems };
 				});
 				importedSubjectIds.add(item.id);
 			}
@@ -806,6 +984,90 @@
 			const direction = event.key === "ArrowRight" ? 1 : -1;
 			const nextIndex = (currentIndex + direction + chapterTabs.length) % chapterTabs.length;
 			selectChapterTab(chapterTabs[nextIndex], true);
+		});
+
+		document.querySelector("#add-course").addEventListener("click", openCourseDialog);
+		document.querySelector("#course-mode-text").addEventListener("click", () => setCourseMode("text"));
+		document.querySelector("#course-mode-photo").addEventListener("click", () => setCourseMode("photo"));
+		document.querySelector("#cancel-course").addEventListener("click", () => courseDialog.close());
+		courseDialog.addEventListener("close", () => {
+			releaseCoursePreview();
+			courseForm.reset();
+			setCourseMode("text");
+		});
+
+		coursePhotoInput.addEventListener("change", () => {
+			releaseCoursePreview();
+			const file = coursePhotoInput.files[0];
+			if (!file) return;
+			if (!file.type.startsWith("image/")) {
+				courseError.textContent = "Choisis un fichier image.";
+				return;
+			}
+			coursePhotoPreviewUrl = URL.createObjectURL(file);
+			coursePhotoPreview.src = coursePhotoPreviewUrl;
+			coursePhotoPreview.hidden = false;
+			courseError.textContent = "";
+		});
+
+		courseForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const chapter = getActiveCourseChapter();
+			if (!chapter) {
+				courseError.textContent = "Ce chapitre n’est plus disponible.";
+				return;
+			}
+
+			let item;
+			courseSaveButton.disabled = true;
+			courseError.textContent = "";
+			try {
+				if (activeCourseMode === "text") {
+					const content = courseTextInput.value.trim();
+					if (!content) throw new Error("Ajoute du texte avant de continuer.");
+					item = { id: crypto.randomUUID(), type: "text", content };
+				} else {
+					const file = coursePhotoInput.files[0];
+					if (!file) throw new Error("Choisis une photo avant de continuer.");
+					item = { id: crypto.randomUUID(), type: "image", content: await compressCoursePhoto(file), name: file.name };
+				}
+			} catch (error) {
+				courseError.textContent = error.message || "Le cours n’a pas pu être préparé.";
+				courseSaveButton.disabled = false;
+				return;
+			}
+
+			const previousItems = chapter.courseItems;
+			chapter.courseItems = [...(Array.isArray(previousItems) ? previousItems : []), item];
+			try {
+				localStorage.setItem(chaptersStorageKey, JSON.stringify(chaptersBySubject));
+				renderCourseItems();
+				courseStatus.textContent = "Cours ajouté au chapitre.";
+				courseDialog.close();
+			} catch {
+				if (previousItems === undefined) delete chapter.courseItems;
+				else chapter.courseItems = previousItems;
+				courseError.textContent = "Enregistrement impossible. Libère de l’espace puis réessaie.";
+			} finally {
+				courseSaveButton.disabled = false;
+			}
+		});
+
+		courseList.addEventListener("click", (event) => {
+			const button = event.target.closest("button[data-course-id]");
+			if (!button) return;
+			const chapter = getActiveCourseChapter();
+			if (!chapter || !Array.isArray(chapter.courseItems)) return;
+			const previousItems = chapter.courseItems;
+			chapter.courseItems = previousItems.filter((item) => item.id !== button.dataset.courseId);
+			try {
+				localStorage.setItem(chaptersStorageKey, JSON.stringify(chaptersBySubject));
+				renderCourseItems();
+				courseStatus.textContent = "Élément supprimé.";
+			} catch {
+				chapter.courseItems = previousItems;
+				courseStatus.textContent = "Suppression impossible.";
+			}
 		});
 
 		chapterReturnButton.addEventListener("click", () => {
