@@ -214,13 +214,6 @@
 			font-weight: 650;
 		}
 
-		.subject-detail {
-			display: block;
-			margin-top: 6px;
-			color: var(--muted);
-			font-size: 13px;
-		}
-
 		.detail-view {
 			max-width: none;
 			animation: arrive .35s ease both;
@@ -280,6 +273,10 @@
 		.chapter-row:first-child { border-radius: 8px 8px 0 0; }
 		.chapter-row:last-child { border-bottom: 1px solid var(--line); border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
 		.chapter-name { min-width: 0; overflow-wrap: anywhere; font-size: 16px; }
+		.chapter-open-link { display: flex; flex: 1; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; color: inherit; text-decoration: none; }
+		.chapter-open-link:focus-visible { outline: 2px solid var(--violet); outline-offset: 3px; border-radius: 3px; }
+		.chapter-arrow { flex: 0 0 auto; color: var(--muted); font-size: 20px; transition: color .18s ease, transform .18s ease; }
+		.chapter-open-link:hover .chapter-arrow { color: var(--violet); transform: translateX(3px); }
 		.chapter-actions { display: flex; flex: 0 0 auto; gap: 6px; }
 
 		.chapter-action {
@@ -452,28 +449,28 @@
 					<h1 class="home-title">Accueil</h1>
 					<div class="subject-grid">
 						<article class="subject">
-							<a class="subject-link" href="#maths"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">∑</span></span><span class="subject-name">Maths</span><span class="subject-detail">Logique &amp; calcul</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#maths"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">∑</span></span><span class="subject-name">Maths</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#francais"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Aa</span></span><span class="subject-name">Français</span><span class="subject-detail">Langue &amp; littérature</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#francais"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Aa</span></span><span class="subject-name">Français</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#anglais"><span class="subject-top"><span class="subject-mark mark-sky" aria-hidden="true">A↗</span></span><span class="subject-name">Anglais</span><span class="subject-detail">English practice</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#anglais"><span class="subject-top"><span class="subject-mark mark-sky" aria-hidden="true">A↗</span></span><span class="subject-name">Anglais</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#histoire"><span class="subject-top"><span class="subject-mark mark-gold" aria-hidden="true">⌛</span></span><span class="subject-name">Histoire</span><span class="subject-detail">Époques &amp; repères</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#histoire"><span class="subject-top"><span class="subject-mark mark-gold" aria-hidden="true">⌛</span></span><span class="subject-name">Histoire</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#physique"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">◉</span></span><span class="subject-name">Physique</span><span class="subject-detail">Matière &amp; énergie</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#physique"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">◉</span></span><span class="subject-name">Physique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#espagnol"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Ñ</span></span><span class="subject-name">Espagnol</span><span class="subject-detail">Español practice</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#espagnol"><span class="subject-top"><span class="subject-mark mark-rose" aria-hidden="true">Ñ</span></span><span class="subject-name">Espagnol</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#es-physique"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">E·P</span></span><span class="subject-name">ES physique</span><span class="subject-detail">Enseignement scientifique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#es-physique"><span class="subject-top"><span class="subject-mark mark-violet" aria-hidden="true">E·P</span></span><span class="subject-name">ES physique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 						<article class="subject">
-							<a class="subject-link" href="#es-svt"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">E·S</span></span><span class="subject-name">ES SVT</span><span class="subject-detail">Enseignement scientifique</span><span class="subject-arrow" aria-hidden="true">→</span></a>
+							<a class="subject-link" href="#es-svt"><span class="subject-top"><span class="subject-mark mark-mint" aria-hidden="true">E·S</span></span><span class="subject-name">ES SVT</span><span class="subject-arrow" aria-hidden="true">→</span></a>
 						</article>
 					</div>
 				</section>
@@ -489,6 +486,13 @@
 					</div>
 					<p id="empty-chapters" class="chapter-empty">Aucun chapitre pour cette matière.</p>
 					<ul id="chapter-list" class="chapter-list" aria-label="Chapitres de la matière"></ul>
+				</section>
+
+				<section id="chapter-detail-view" class="chapter-detail-view" aria-labelledby="chapter-detail-title" hidden>
+					<div class="detail-title-row chapter-title-row">
+						<h1 id="chapter-detail-title"></h1>
+						<button id="chapter-return-button" class="detail-home-button" type="button">← Retour</button>
+					</div>
 				</section>
 
 		</main>
@@ -545,12 +549,15 @@
 	<script>
 		const selectionView = document.querySelector("#selection-view");
 		const subjectDetailView = document.querySelector("#subject-detail-view");
+		const chapterDetailView = document.querySelector("#chapter-detail-view");
 		const chaptersStorageKey = "revision-chapters-by-subject";
 		const chapterList = document.querySelector("#chapter-list");
 		const chapterDialog = document.querySelector("#chapter-dialog");
 		const chapterForm = document.querySelector("#chapter-form");
 		const chapterTitleInput = document.querySelector("#chapter-title-input");
 		const deleteChapterDialog = document.querySelector("#delete-chapter-dialog");
+		const chapterDetailTitle = document.querySelector("#chapter-detail-title");
+		const chapterReturnButton = document.querySelector("#chapter-return-button");
 		const backupStorageFormat = "revision-subjects-backup";
 		const backupButton = document.querySelector("#backup-button");
 		const backupDialog = document.querySelector("#backup-dialog");
@@ -585,9 +592,20 @@
 			document.querySelector("#detail-title").textContent = subject;
 			renderChapters();
 			selectionView.hidden = true;
+			chapterDetailView.hidden = true;
 			subjectDetailView.hidden = false;
 			backupButton.hidden = true;
 			document.title = `${subject} — Révision`;
+		}
+
+		function showChapter(chapter, subjectKey) {
+			chapterDetailTitle.textContent = chapter.title;
+			chapterReturnButton.dataset.subject = subjectKey;
+			selectionView.hidden = true;
+			subjectDetailView.hidden = true;
+			chapterDetailView.hidden = false;
+			backupButton.hidden = true;
+			document.title = `${chapter.title} — Révision`;
 		}
 
 		function renderChapters() {
@@ -596,10 +614,18 @@
 			chapterList.replaceChildren(...chapters.map((chapter) => {
 				const row = document.createElement("li");
 				row.className = "chapter-row";
+				const link = document.createElement("a");
+				link.className = "chapter-open-link";
+				link.href = `#${subjectKey}/chapitre/${encodeURIComponent(chapter.id)}`;
 
 				const name = document.createElement("span");
 				name.className = "chapter-name";
 				name.textContent = chapter.title;
+				const arrow = document.createElement("span");
+				arrow.className = "chapter-arrow";
+				arrow.setAttribute("aria-hidden", "true");
+				arrow.textContent = "→";
+				link.append(name, arrow);
 	
 				const actions = document.createElement("div");
 				actions.className = "chapter-actions";
@@ -613,7 +639,7 @@
 					actions.append(button);
 				});
 
-				row.append(name, actions);
+				row.append(link, actions);
 				return row;
 			}));
 			document.querySelector("#empty-chapters").hidden = chapters.length > 0;
@@ -635,6 +661,7 @@
 
 		function showHome() {
 			subjectDetailView.hidden = true;
+			chapterDetailView.hidden = true;
 			selectionView.hidden = false;
 			backupButton.hidden = false;
 			document.title = "Révision — Choisir ses matières";
@@ -695,13 +722,26 @@
 		}
 
 		function syncRoute() {
-			const subject = subjects[decodeURIComponent(location.hash.slice(1))];
+			const [subjectKey, routeType, encodedChapterId] = location.hash.slice(1).split("/");
+			if (routeType === "chapitre" && Object.hasOwn(subjects, subjectKey)) {
+				const chapterId = decodeURIComponent(encodedChapterId || "");
+				const chapter = (chaptersBySubject[subjectKey] || []).find((item) => item.id === chapterId);
+				if (chapter) {
+					showChapter(chapter, subjectKey);
+					return;
+				}
+			}
+			const subject = subjects[decodeURIComponent(subjectKey || "")];
 			if (subject) showSubject(subject);
 			else showHome();
 		}
 
 		document.querySelector("#detail-home-button").addEventListener("click", () => {
 			location.hash = "";
+		});
+
+		chapterReturnButton.addEventListener("click", () => {
+			if (chapterReturnButton.dataset.subject) location.hash = `#${chapterReturnButton.dataset.subject}`;
 		});
 
 		backupButton.addEventListener("click", () => {
