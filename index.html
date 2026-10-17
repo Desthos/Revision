@@ -261,6 +261,20 @@
 
 		.chapter-tabpanel:focus-visible { outline: 2px solid var(--violet); outline-offset: 4px; }
 
+		.ai-panel { max-width: 1120px; }
+		.ai-panel-title { margin: 0 0 8px; font-size: 22px; font-weight: 650; }
+		.ai-panel-description { margin: 0 0 22px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+		.ai-form { display: flex; align-items: end; gap: 12px; max-width: 960px; }
+		.ai-field { display: grid; flex: 1; gap: 8px; }
+		.ai-field label { color: #ded9e9; font-size: 14px; }
+		.ai-query { width: 100%; min-height: 50px; padding: 0 14px; border: 1px solid #514c60; border-radius: 8px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 16px; }
+		.ai-query:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		.ai-run { min-width: 200px; min-height: 50px; }
+		.ai-run:disabled { cursor: progress; opacity: .65; }
+		.ai-status { min-height: 24px; margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+		.ai-result { max-width: 1120px; min-height: 180px; margin-top: 12px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: rgb(255 255 255 / 2%); font-size: 16px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+		.ai-result[hidden] { display: none; }
+
 		.course-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
 		.course-toolbar h2 { margin: 0; font-size: 19px; font-weight: 650; }
 		.course-add { min-width: 0; min-height: 44px; }
@@ -542,6 +556,9 @@
 			.course-toolbar { align-items: flex-start; flex-direction: column; }
 			.course-add { width: 100%; }
 			.course-entry { padding: 14px; }
+			.ai-form { align-items: stretch; flex-direction: column; }
+			.ai-run { width: 100%; }
+			.ai-result { padding: 16px; }
 			.chapter-dialog.course-dialog { width: calc(100vw - 16px); max-width: calc(100vw - 16px); height: 96vh; max-height: 96vh; }
 			.course-dialog .chapter-dialog-content { padding: 16px; }
 			.course-editor { padding: 16px; font-size: 17px; }
@@ -627,8 +644,30 @@
 						<p id="course-empty" class="course-empty">Aucun cours pour ce chapitre.</p>
 						<div id="course-items" class="course-items"></div>
 					</section>
-					<section id="chapter-panel-ressources" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-ressources" tabindex="0" hidden></section>
-					<section id="chapter-panel-revision" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-revision" tabindex="0" hidden></section>
+					<section id="chapter-panel-ressources" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-ressources" tabindex="0" hidden>
+						<div class="ai-panel">
+							<h2 class="ai-panel-title">Ressources du chapitre</h2>
+							<p class="ai-panel-description">Trouve des ressources pédagogiques adaptées à ce chapitre.</p>
+							<form id="resources-form" class="ai-form">
+								<div class="ai-field">
+									<label for="resources-query">Sujet à rechercher</label>
+									<input id="resources-query" class="ai-query" type="text" maxlength="2000" required placeholder="Ex. exercices corrigés, vidéo, cours…">
+								</div>
+								<button id="resources-submit" class="primary-button ai-run" type="submit">Chercher des ressources</button>
+							</form>
+							<p id="resources-status" class="ai-status" role="status" aria-live="polite"></p>
+							<div id="resources-result" class="ai-result" aria-live="polite" hidden></div>
+						</div>
+					</section>
+					<section id="chapter-panel-revision" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-revision" tabindex="0" hidden>
+						<div class="ai-panel">
+							<h2 class="ai-panel-title">Révision du chapitre</h2>
+							<p class="ai-panel-description">Génère un quiz à partir du texte saisi dans ce chapitre.</p>
+							<button id="revision-submit" class="primary-button ai-run" type="button">Générer un quiz</button>
+							<p id="revision-status" class="ai-status" role="status" aria-live="polite"></p>
+							<div id="revision-result" class="ai-result" aria-live="polite" hidden></div>
+						</div>
+					</section>
 				</section>
 
 		</main>
@@ -747,6 +786,14 @@
 		const chapterReturnButton = document.querySelector("#chapter-return-button");
 		const chapterTabs = [...document.querySelectorAll(".chapter-tab")];
 		const chapterTabList = document.querySelector('[role="tablist"]');
+		const resourcesForm = document.querySelector("#resources-form");
+		const resourcesQuery = document.querySelector("#resources-query");
+		const resourcesSubmit = document.querySelector("#resources-submit");
+		const resourcesStatus = document.querySelector("#resources-status");
+		const resourcesResult = document.querySelector("#resources-result");
+		const revisionSubmit = document.querySelector("#revision-submit");
+		const revisionStatus = document.querySelector("#revision-status");
+		const revisionResult = document.querySelector("#revision-result");
 		const courseList = document.querySelector("#course-items");
 		const courseEmpty = document.querySelector("#course-empty");
 		const courseDialog = document.querySelector("#course-dialog");
@@ -855,6 +902,40 @@
 		function getActiveCourseChapter() {
 			const chapters = chaptersBySubject[activeCourseSubjectKey] || [];
 			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
+		}
+
+		async function requestGemini(endpoint, payload, button, status, result) {
+			button.disabled = true;
+			status.textContent = "Gemini prépare la réponse…";
+			result.hidden = true;
+			result.textContent = "";
+			try {
+				const response = await fetch(endpoint, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(payload)
+				});
+				const data = await response.json().catch(() => ({}));
+				if (!response.ok) throw new Error(data.detail || `Erreur ${response.status}.`);
+				if (typeof data.response !== "string" || !data.response.trim()) throw new Error("Gemini n’a renvoyé aucun texte.");
+				result.textContent = data.response;
+				result.hidden = false;
+				status.textContent = "";
+			} catch (error) {
+				status.textContent = error.message || "Impossible de joindre Gemini.";
+			} finally {
+				button.disabled = false;
+			}
+		}
+
+		function getActiveChapterText() {
+			const chapter = getActiveCourseChapter();
+			return (chapter?.courseItems || [])
+				.filter((item) => item.type === "text")
+				.map((item) => item.format === "html" ? getCoursePlainText(item.content) : item.content)
+				.join("\n\n")
+				.trim()
+				.slice(0, 30000);
 		}
 
 		function isSafeCourseColor(value) {
@@ -1422,6 +1503,28 @@
 			const direction = event.key === "ArrowRight" ? 1 : -1;
 			const nextIndex = (currentIndex + direction + chapterTabs.length) % chapterTabs.length;
 			selectChapterTab(chapterTabs[nextIndex], true);
+		});
+
+		resourcesForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const query = resourcesQuery.value.trim();
+			if (!query) return;
+			await requestGemini("/api/resources", {
+				chapter_title: chapterDetailTitle.textContent,
+				query
+			}, resourcesSubmit, resourcesStatus, resourcesResult);
+		});
+
+		revisionSubmit.addEventListener("click", async () => {
+			const course = getActiveChapterText();
+			if (!course) {
+				revisionStatus.textContent = "Ajoute d’abord du cours en texte dans l’onglet Saisie.";
+				return;
+			}
+			await requestGemini("/api/revision", {
+				chapter_title: chapterDetailTitle.textContent,
+				course
+			}, revisionSubmit, revisionStatus, revisionResult);
 		});
 
 		document.querySelector("#add-course").addEventListener("click", () => openCourseDialog());
