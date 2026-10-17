@@ -272,12 +272,13 @@
 			gap: 16px;
 			min-height: 72px;
 			padding: 10px 12px;
-			border-bottom: 1px solid var(--line);
+			border: 1px solid var(--line);
+			border-bottom: 0;
 			background: rgb(255 255 255 / 2%);
 		}
 
-		.chapter-row:first-child { border-top: 1px solid var(--line); border-radius: 8px 8px 0 0; }
-		.chapter-row:last-child { border-radius: 0 0 8px 8px; }
+		.chapter-row:first-child { border-radius: 8px 8px 0 0; }
+		.chapter-row:last-child { border-bottom: 1px solid var(--line); border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
 		.chapter-name { min-width: 0; overflow-wrap: anywhere; font-size: 16px; }
 		.chapter-actions { display: flex; flex: 0 0 auto; gap: 6px; }
 
@@ -341,6 +342,37 @@
 		.chapter-confirm-delete { min-width: 116px; min-height: 44px; border: 0; border-radius: 8px; color: #fff; background: #9b4059; cursor: pointer; font-size: 14px; font-weight: 650; }
 		.chapter-confirm-delete:hover { background: #b34d68; }
 
+		.backup-fab {
+			position: fixed;
+			z-index: 4;
+			right: max(24px, env(safe-area-inset-right));
+			bottom: max(24px, env(safe-area-inset-bottom));
+			display: grid;
+			width: 56px;
+			height: 56px;
+			place-items: center;
+			border: 1px solid rgb(193 174 255 / 50%);
+			border-radius: 50%;
+			color: #fff;
+			background: linear-gradient(145deg, #8b5cf6, #6542bf);
+			box-shadow: 0 8px 24px rgb(0 0 0 / 36%);
+			cursor: pointer;
+			transition: transform .18s ease, box-shadow .18s ease;
+		}
+
+		.backup-fab:hover { transform: translateY(-2px); box-shadow: 0 11px 28px rgb(0 0 0 / 42%); }
+		.backup-fab:focus-visible { outline: 3px solid var(--mint); outline-offset: 3px; }
+		.backup-fab svg { width: 25px; height: 25px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+
+		.backup-dialog { width: min(100% - 32px, 520px); }
+		.backup-dialog-content { gap: 18px; }
+		.backup-dialog .backup-description { color: var(--muted); font-size: 16px; line-height: 1.5; }
+		.backup-actions, .backup-import-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+		.backup-import-actions[hidden] { display: none; }
+		.backup-actions button, .backup-import-actions button { min-height: 46px; }
+		.backup-status { min-height: 24px; color: var(--mint) !important; }
+		.backup-close { justify-self: end; min-height: 40px; }
+
 		.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 		.clear-button, .primary-button {
@@ -401,6 +433,9 @@
 			.chapter-actions { width: 100%; }
 			.chapter-action { flex: 1; }
 			.chapter-dialog-content { padding: 20px; }
+			.backup-fab { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 52px; height: 52px; }
+			.backup-actions, .backup-import-actions { flex-direction: column; }
+			.backup-actions button, .backup-import-actions button { width: 100%; }
 		}
 
 		@media (prefers-reduced-motion: reduce) {
@@ -459,6 +494,31 @@
 		</main>
 	</div>
 
+	<button id="backup-button" class="backup-fab" type="button" aria-label="Importer ou exporter une sauvegarde" title="Sauvegarde" hidden>
+		<svg viewBox="0 0 24 24" aria-hidden="true">
+			<path d="M5 3h12l4 4v14H3V3h2Z"></path>
+			<path d="M7 3v6h10V3M7 21v-8h10v8"></path>
+		</svg>
+	</button>
+	<input id="backup-file-input" type="file" accept=".json,application/json" hidden>
+
+	<dialog id="backup-dialog" class="chapter-dialog backup-dialog" aria-labelledby="backup-dialog-title">
+		<div class="chapter-dialog-content backup-dialog-content">
+			<h2 id="backup-dialog-title">Sauvegarde</h2>
+			<p class="backup-description">Exporte tes matières et chapitres en JSON, ou importe une sauvegarde existante.</p>
+			<p id="backup-status" class="backup-status" aria-live="polite"></p>
+			<div id="backup-actions" class="backup-actions">
+				<button id="export-backup" class="primary-button" type="button">Exporter en .json</button>
+				<button id="import-backup" class="chapter-action" type="button">Importer un .json</button>
+			</div>
+			<div id="backup-import-actions" class="backup-import-actions" hidden>
+				<button id="cancel-backup-import" class="clear-button" type="button">Annuler</button>
+				<button id="confirm-backup-import" class="chapter-confirm-delete" type="button">Remplacer les chapitres</button>
+			</div>
+			<button id="close-backup-dialog" class="clear-button backup-close" type="button">Fermer</button>
+		</div>
+	</dialog>
+
 	<dialog id="chapter-dialog" class="chapter-dialog" aria-labelledby="chapter-dialog-title">
 		<form id="chapter-form" class="chapter-dialog-content">
 			<h2 id="chapter-dialog-title">Ajouter un chapitre</h2>
@@ -491,6 +551,13 @@
 		const chapterForm = document.querySelector("#chapter-form");
 		const chapterTitleInput = document.querySelector("#chapter-title-input");
 		const deleteChapterDialog = document.querySelector("#delete-chapter-dialog");
+		const backupStorageFormat = "revision-subjects-backup";
+		const backupButton = document.querySelector("#backup-button");
+		const backupDialog = document.querySelector("#backup-dialog");
+		const backupFileInput = document.querySelector("#backup-file-input");
+		const backupStatus = document.querySelector("#backup-status");
+		const backupActions = document.querySelector("#backup-actions");
+		const backupImportActions = document.querySelector("#backup-import-actions");
 		const subjects = {
 			maths: "Maths",
 			francais: "Français",
@@ -503,6 +570,7 @@
 		};
 		let chaptersBySubject = {};
 		let activeChapterId = null;
+		let pendingImportedChapters = null;
 
 		try {
 			const savedChapters = JSON.parse(localStorage.getItem(chaptersStorageKey) || "{}");
@@ -518,6 +586,7 @@
 			renderChapters();
 			selectionView.hidden = true;
 			subjectDetailView.hidden = false;
+			backupButton.hidden = true;
 			document.title = `${subject} — Révision`;
 		}
 
@@ -567,7 +636,58 @@
 		function showHome() {
 			subjectDetailView.hidden = true;
 			selectionView.hidden = false;
+			backupButton.hidden = false;
 			document.title = "Révision — Choisir ses matières";
+		}
+
+		function createBackup() {
+			return {
+				format: backupStorageFormat,
+				version: 1,
+				exportedAt: new Date().toISOString(),
+				subjects: Object.entries(subjects).map(([id, name]) => ({
+					id,
+					name,
+					chapters: Array.isArray(chaptersBySubject[id]) ? chaptersBySubject[id] : []
+				}))
+			};
+		}
+
+		function validateBackup(backup) {
+			if (!backup || backup.format !== backupStorageFormat || backup.version !== 1 || !Array.isArray(backup.subjects)) {
+				throw new Error("format");
+			}
+
+			const imported = {};
+			const importedSubjectIds = new Set();
+			for (const item of backup.subjects) {
+				if (!item || typeof item.id !== "string" || !Object.hasOwn(subjects, item.id) ||
+					item.name !== subjects[item.id] || importedSubjectIds.has(item.id) || !Array.isArray(item.chapters)) {
+					throw new Error("subject");
+				}
+
+				const chapterIds = new Set();
+				imported[item.id] = item.chapters.map((chapter) => {
+					if (!chapter || typeof chapter.id !== "string" || !chapter.id || chapterIds.has(chapter.id) ||
+						typeof chapter.title !== "string" || !chapter.title.trim() || chapter.title.trim().length > 100) {
+						throw new Error("chapter");
+					}
+					chapterIds.add(chapter.id);
+					return { id: chapter.id, title: chapter.title.trim() };
+				});
+				importedSubjectIds.add(item.id);
+			}
+
+			if (importedSubjectIds.size !== Object.keys(subjects).length) throw new Error("incomplete");
+			return imported;
+		}
+
+		function resetBackupDialog() {
+			pendingImportedChapters = null;
+			backupStatus.textContent = "";
+			backupActions.hidden = false;
+			backupImportActions.hidden = true;
+			backupFileInput.value = "";
 		}
 
 		function syncRoute() {
@@ -578,6 +698,75 @@
 
 		document.querySelector("#detail-home-button").addEventListener("click", () => {
 			location.hash = "";
+		});
+
+		backupButton.addEventListener("click", () => {
+			resetBackupDialog();
+			backupDialog.showModal();
+		});
+
+		document.querySelector("#close-backup-dialog").addEventListener("click", () => backupDialog.close());
+		backupDialog.addEventListener("close", resetBackupDialog);
+
+		document.querySelector("#export-backup").addEventListener("click", () => {
+			const backup = createBackup();
+			const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+			const objectUrl = URL.createObjectURL(blob);
+			const downloadLink = document.createElement("a");
+			downloadLink.href = objectUrl;
+			downloadLink.download = `revision-sauvegarde-${new Date().toISOString().slice(0, 10)}.json`;
+			document.body.append(downloadLink);
+			downloadLink.click();
+			downloadLink.remove();
+			window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+			const chapterCount = backup.subjects.reduce((total, subject) => total + subject.chapters.length, 0);
+			backupStatus.textContent = `Sauvegarde exportée : ${backup.subjects.length} matières et ${chapterCount} chapitres.`;
+		});
+
+		document.querySelector("#import-backup").addEventListener("click", () => backupFileInput.click());
+
+		backupFileInput.addEventListener("change", async () => {
+			const file = backupFileInput.files[0];
+			if (!file) return;
+
+			try {
+				const backup = JSON.parse(await file.text());
+				pendingImportedChapters = validateBackup(backup);
+				const chapterCount = Object.values(pendingImportedChapters).reduce((total, chapters) => total + chapters.length, 0);
+				backupStatus.textContent = `Fichier valide : ${Object.keys(subjects).length} matières et ${chapterCount} chapitres. Confirme pour remplacer les chapitres actuels.`;
+				backupActions.hidden = true;
+				backupImportActions.hidden = false;
+			} catch {
+				pendingImportedChapters = null;
+				backupStatus.textContent = "Fichier JSON invalide ou incompatible. Les données actuelles sont conservées.";
+				backupActions.hidden = false;
+				backupImportActions.hidden = true;
+			} finally {
+				backupFileInput.value = "";
+			}
+		});
+
+		document.querySelector("#cancel-backup-import").addEventListener("click", () => {
+			pendingImportedChapters = null;
+			backupStatus.textContent = "Import annulé. Les données actuelles sont conservées.";
+			backupActions.hidden = false;
+			backupImportActions.hidden = true;
+		});
+
+		document.querySelector("#confirm-backup-import").addEventListener("click", () => {
+			if (!pendingImportedChapters) return;
+
+			try {
+				localStorage.setItem(chaptersStorageKey, JSON.stringify(pendingImportedChapters));
+				chaptersBySubject = pendingImportedChapters;
+				const chapterCount = Object.values(chaptersBySubject).reduce((total, chapters) => total + chapters.length, 0);
+				pendingImportedChapters = null;
+				backupStatus.textContent = `Import réussi : ${Object.keys(subjects).length} matières et ${chapterCount} chapitres.`;
+				backupActions.hidden = false;
+				backupImportActions.hidden = true;
+			} catch {
+				backupStatus.textContent = "Import impossible. Les données actuelles sont conservées.";
+			}
 		});
 
 		document.querySelector("#add-chapter").addEventListener("click", () => openChapterDialog());
