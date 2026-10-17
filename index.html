@@ -265,23 +265,75 @@
 		.course-toolbar h2 { margin: 0; font-size: 19px; font-weight: 650; }
 		.course-add { min-width: 0; min-height: 44px; }
 		.course-empty { margin: 0; padding: 20px 16px; border: 1px dashed #514c60; border-radius: 8px; color: var(--muted); font-size: 15px; }
-		.course-status { margin: 0 0 12px; color: var(--mint); font-size: 14px; }
 		.course-items { display: grid; gap: 14px; }
 		.course-entry { display: grid; gap: 12px; padding: 18px; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / 2%); }
 		.course-entry-text { margin: 0; color: var(--text); font-size: 16px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+		.course-entry-text[data-format="html"] { white-space: normal; }
+		.course-entry-text h2 { margin: 18px 0 10px; font-size: 24px; }
+		.course-entry-text h3 { margin: 16px 0 8px; font-size: 20px; }
+		.course-entry-text ul.course-list-dash { padding-left: 0; list-style: none; }
+		.course-entry-text ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--violet); }
 		.course-entry-image { display: block; max-width: 100%; max-height: 680px; border-radius: 6px; object-fit: contain; object-position: left; }
 		.course-entry-caption { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 		.course-entry-remove { justify-self: end; min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 13px; }
 		.course-entry-remove:hover { border-color: #9f596a; color: #ffc3d2; }
-		.course-dialog { width: min(100% - 32px, 600px); }
+		.course-entry-actions { display: flex; justify-self: end; gap: 8px; }
+		.course-entry-edit { min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 13px; }
+		.course-entry-edit:hover { border-color: #61577e; color: var(--text); }
+		.chapter-dialog.course-dialog { width: min(calc(100vw - 32px), 1500px); max-width: calc(100vw - 32px); height: min(94vh, 1100px); max-height: 94vh; }
+		.course-dialog .chapter-dialog-content { height: 100%; min-height: 0; grid-template-rows: auto auto minmax(0, 1fr) auto auto; overflow: hidden; }
 		.course-mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 8px; background: #14121d; }
-		.course-mode { min-height: 42px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; }
+		.course-mode { min-height: 42px; border: 0; border-radius: 6px; color: var(--muted); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; transition: color .2s ease, background .2s ease; }
 		.course-mode[aria-pressed="true"] { color: var(--text); background: #343044; }
+		.course-input-stage { display: grid; }
+		.course-input-stage > .course-field { grid-area: 1 / 1; align-content: start; visibility: visible; opacity: 1; transform: translateY(0); transition: opacity .22s ease, transform .22s ease, visibility 0s; }
+		.course-input-stage > .course-field[hidden] { display: grid !important; visibility: hidden; opacity: 0; transform: translateY(9px); pointer-events: none; transition: opacity .22s ease, transform .22s ease, visibility 0s linear .22s; }
 		.course-field { display: grid; gap: 10px; }
-		.course-textarea { width: 100%; min-height: 240px; padding: 12px; border: 1px solid #514c60; border-radius: 7px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 16px; line-height: 1.5; resize: vertical; }
-		.course-textarea:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
-		.course-file { min-height: 46px; color: var(--muted); font-size: 14px; }
-		.course-preview { display: block; max-width: 100%; max-height: 300px; border: 1px solid var(--line); border-radius: 7px; object-fit: contain; object-position: left; }
+		.course-editor-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px; border: 1px solid #514c60; border-radius: 7px 7px 0 0; background: #171520; }
+		.course-format-button { min-width: 38px; min-height: 36px; padding: 0 9px; border: 1px solid transparent; border-radius: 5px; color: var(--text); background: transparent; cursor: pointer; font-size: 14px; font-weight: 600; }
+		.course-format-button:hover, .course-format-button:focus-visible { border-color: #514c60; background: #2b2838; }
+		.course-format-bold { font-weight: 800; }
+		.course-format-italic { font-style: italic; }
+		.course-format-list { font-size: 20px; }
+		.course-font-size { min-height: 36px; min-width: 76px; padding: 0 8px; border: 1px solid #514c60; border-radius: 5px; color: var(--text); background: #211f2e; font: inherit; font-size: 14px; }
+		.course-color-label { display: grid; width: 38px; height: 36px; place-items: center; border: 1px solid transparent; border-radius: 5px; cursor: pointer; }
+		.course-color-label:hover { border-color: #514c60; background: #2b2838; }
+		.course-color-input { width: 30px; height: 30px; padding: 2px; border: 0; border-radius: 4px; background: transparent; cursor: pointer; }
+		.course-editor { width: 100%; min-height: 0; height: 100%; overflow: auto; margin: 4px 0 0; padding: 24px 32px; border: 1px solid #514c60; border-radius: 7px; outline: none; color: var(--text); background: #14121d; font-size: 18px; line-height: 1.65; overflow-wrap: anywhere; }
+		.course-editor:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		.course-editor:empty::before { content: attr(data-placeholder); color: var(--muted); pointer-events: none; }
+		.course-editor h2 { margin: 18px 0 10px; font-size: 28px; }
+		.course-editor h3 { margin: 16px 0 8px; font-size: 22px; }
+		.course-editor p { margin: 0 0 10px; }
+		.course-editor ul, .course-editor ol { padding-left: 28px; }
+		.course-editor ul.course-list-dash { padding-left: 0; list-style: none; }
+		.course-editor ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--violet); }
+		.course-editor ol[data-course-list-style] { padding-left: 0; list-style: none; counter-reset: course-list-counter; }
+		.course-editor ol[data-course-list-style] > li { counter-increment: course-list-counter; }
+		.course-editor ol[data-course-list-style] > li::before { display: inline-block; min-width: 2.5em; color: var(--violet); font-weight: 650; }
+		.course-editor ol[data-course-list-style="roman-upper"] > li::before { content: counter(course-list-counter, upper-roman) ")"; }
+		.course-editor ol[data-course-list-style="decimal"] > li::before { content: counter(course-list-counter, decimal) ")"; }
+		.course-editor ol[data-course-list-style="alpha-upper"] > li::before { content: counter(course-list-counter, upper-alpha) ")"; }
+		.course-editor ol[data-course-list-style="alpha-lower"] > li::before { content: counter(course-list-counter, lower-alpha) ")"; }
+		.course-dropzone { position: relative; display: grid; min-height: 300px; place-content: center; justify-items: center; gap: 12px; padding: 32px; border: 2px dashed #655d7a; border-radius: 12px; text-align: center; background: rgb(139 92 246 / 4%); transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+		.course-dropzone.is-dragging { border-color: var(--violet); background: rgb(139 92 246 / 12%); transform: scale(1.005); }
+		.course-drop-icon { display: grid; width: 54px; height: 54px; place-items: center; border: 1px solid #655d7a; border-radius: 50%; color: var(--violet); font-size: 30px; line-height: 1; }
+		.course-drop-title { margin: 0; color: var(--text); font-size: 20px; font-weight: 650; }
+		.course-drop-note { margin: 0; color: var(--muted); font-size: 14px; }
+		.course-picker-wrap { position: relative; display: inline-flex; min-height: 46px; }
+		.course-picker-visual { pointer-events: none; }
+		.course-file-input { position: absolute; z-index: 2; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+		.course-file-input:focus-visible + .course-picker-visual { outline: 3px solid var(--mint); outline-offset: 3px; }
+		.course-file-list { display: grid; gap: 10px; }
+		.course-file-item { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / 2%); }
+		.course-file-thumb, .course-file-type { display: grid; width: 52px; height: 52px; place-items: center; border-radius: 6px; color: #d7caff; background: rgb(139 92 246 / 14%); font-size: 12px; font-weight: 700; text-transform: uppercase; }
+		.course-file-thumb { object-fit: cover; }
+		.course-file-meta { min-width: 0; }
+		.course-file-name { display: block; overflow: hidden; color: var(--text); font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+		.course-file-size { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; }
+		.course-file-remove { min-height: 38px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 13px; }
+		.course-file-remove:hover { border-color: #9f596a; color: #ffc3d2; }
+		.course-entry-file-link { color: #d7caff; font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
 		.course-error { min-height: 0; color: #ffc3d2 !important; font-size: 14px !important; }
 		.detail-home-button {
 			flex: 0 0 auto;
@@ -490,7 +542,15 @@
 			.course-toolbar { align-items: flex-start; flex-direction: column; }
 			.course-add { width: 100%; }
 			.course-entry { padding: 14px; }
-			.course-textarea { min-height: 200px; }
+			.chapter-dialog.course-dialog { width: calc(100vw - 16px); max-width: calc(100vw - 16px); height: 96vh; max-height: 96vh; }
+			.course-dialog .chapter-dialog-content { padding: 16px; }
+			.course-editor { padding: 16px; font-size: 17px; }
+			.course-editor h2 { font-size: 24px; }
+			.course-editor h3 { font-size: 20px; }
+			.course-dropzone { min-height: 250px; padding: 20px; }
+			.course-file-item { grid-template-columns: 44px minmax(0, 1fr); }
+			.course-file-thumb, .course-file-type { width: 44px; height: 44px; }
+			.course-file-remove { grid-column: 2; justify-self: start; }
 			.backup-fab { right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); width: 52px; height: 52px; }
 			.backup-actions, .backup-import-actions { flex-direction: column; }
 			.backup-actions button, .backup-import-actions button { width: 100%; }
@@ -564,7 +624,6 @@
 							<h2>Mon cours</h2>
 							<button id="add-course" class="primary-button course-add" type="button">+ Ajouter du cours</button>
 						</div>
-						<p id="course-status" class="course-status" aria-live="polite"></p>
 						<p id="course-empty" class="course-empty">Aucun cours pour ce chapitre.</p>
 						<div id="course-items" class="course-items"></div>
 					</section>
@@ -630,14 +689,41 @@
 				<button id="course-mode-text" class="course-mode" type="button" aria-pressed="true">Texte</button>
 				<button id="course-mode-photo" class="course-mode" type="button" aria-pressed="false">Photo</button>
 			</div>
-			<div id="course-text-field" class="course-field">
-				<label for="course-text">Texte du cours</label>
-				<textarea id="course-text" class="course-textarea" maxlength="30000" placeholder="Saisis ou colle ton cours ici…"></textarea>
-			</div>
-			<div id="course-photo-field" class="course-field" hidden>
-				<label for="course-photo">Photo du cours</label>
-				<input id="course-photo" class="course-file" type="file" accept="image/*" capture="environment">
-				<img id="course-photo-preview" class="course-preview" alt="Aperçu de la photo sélectionnée" hidden>
+			<div class="course-input-stage">
+				<div id="course-text-field" class="course-field">
+					<label for="course-text">Texte du cours</label>
+					<div class="course-editor-toolbar" role="toolbar" aria-label="Formatage du cours">
+						<button class="course-format-button course-format-bold" type="button" data-course-command="bold" aria-label="Gras" title="Gras">B</button>
+						<button class="course-format-button course-format-italic" type="button" data-course-command="italic" aria-label="Italique" title="Italique">I</button>
+						<label class="visually-hidden" for="course-font-size">Taille de police</label>
+						<select id="course-font-size" class="course-font-size" aria-label="Taille de police">
+							<option value="14">14 px</option><option value="16">16 px</option><option value="18" selected>18 px</option><option value="20">20 px</option><option value="24">24 px</option><option value="28">28 px</option><option value="32">32 px</option><option value="36">36 px</option>
+						</select>
+						<button class="course-format-button course-format-list" type="button" data-course-list="bullet" aria-label="Liste à puces" title="Liste à puces">•</button>
+						<button class="course-format-button course-format-list" type="button" data-course-list="dash" aria-label="Liste à tirets" title="Liste à tirets">–</button>
+						<button class="course-format-button course-format-list" type="button" data-course-list="roman-upper" aria-label="Liste en chiffres romains majuscules" title="Liste I), II), III)…">I)</button>
+						<button class="course-format-button course-format-list" type="button" data-course-list="decimal" aria-label="Liste numérotée" title="Liste 1), 2), 3)…">1)</button>
+						<button class="course-format-button course-format-list" type="button" data-course-list="alpha-upper" aria-label="Liste en lettres majuscules" title="Liste A), B), C)…">A)</button>
+						<button class="course-format-button course-format-list" type="button" data-course-list="alpha-lower" aria-label="Liste en lettres minuscules" title="Liste a), b), c)…">a)</button>
+						<label class="course-color-label" title="Couleur du texte">
+							<input id="course-text-color" class="course-color-input" type="color" value="#f4f1fa" aria-label="Couleur du texte">
+						</label>
+					</div>
+					<div id="course-text" class="course-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texte du cours" data-placeholder="Saisis ou colle ton cours ici…" spellcheck="true"></div>
+				</div>
+				<div id="course-photo-field" class="course-field" hidden inert aria-hidden="true">
+					<div id="course-current-file" class="course-file-item" hidden></div>
+					<div id="course-dropzone" class="course-dropzone" role="region" aria-label="Zone de dépôt de cours">
+						<span class="course-drop-icon" aria-hidden="true">↓</span>
+						<p class="course-drop-title">Dépose tes fichiers ici</p>
+						<p class="course-drop-note">PDF, photos, JPEG, WebP, DOCX, ODT…</p>
+						<span class="course-picker-wrap">
+							<input id="course-photo" class="course-file-input" type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,.bmp,.doc,.docx,.odt,.rtf,.txt,.ppt,.pptx,.xls,.xlsx,.ods,image/*,application/pdf" aria-label="Parcourir les fichiers" multiple>
+							<span class="primary-button course-picker-visual" aria-hidden="true">Parcourir les fichiers</span>
+						</span>
+					</div>
+					<div id="course-file-list" class="course-file-list" aria-live="polite"></div>
+				</div>
 			</div>
 			<p id="course-error" class="course-error" role="status" aria-live="polite"></p>
 			<div class="chapter-dialog-actions">
@@ -663,12 +749,16 @@
 		const chapterTabList = document.querySelector('[role="tablist"]');
 		const courseList = document.querySelector("#course-items");
 		const courseEmpty = document.querySelector("#course-empty");
-		const courseStatus = document.querySelector("#course-status");
 		const courseDialog = document.querySelector("#course-dialog");
 		const courseForm = document.querySelector("#course-form");
-		const courseTextInput = document.querySelector("#course-text");
+		const courseEditor = document.querySelector("#course-text");
+		const courseTextColor = document.querySelector("#course-text-color");
+		const courseFontSize = document.querySelector("#course-font-size");
 		const coursePhotoInput = document.querySelector("#course-photo");
-		const coursePhotoPreview = document.querySelector("#course-photo-preview");
+		const courseDropzone = document.querySelector("#course-dropzone");
+		const courseFileList = document.querySelector("#course-file-list");
+		const courseCurrentFile = document.querySelector("#course-current-file");
+		const chooseCourseFilesButton = document.querySelector("#choose-course-files");
 		const courseError = document.querySelector("#course-error");
 		const courseTextField = document.querySelector("#course-text-field");
 		const coursePhotoField = document.querySelector("#course-photo-field");
@@ -690,13 +780,34 @@
 			"es-physique": "ES physique",
 			"es-svt": "ES SVT"
 		};
+		const supportedCourseMimeTypes = {
+			pdf: "application/pdf",
+			jpg: "image/jpeg",
+			jpeg: "image/jpeg",
+			png: "image/png",
+			webp: "image/webp",
+			gif: "image/gif",
+			bmp: "image/bmp",
+			doc: "application/msword",
+			docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+			odt: "application/vnd.oasis.opendocument.text",
+			rtf: "application/rtf",
+			txt: "text/plain",
+			ppt: "application/vnd.ms-powerpoint",
+			pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+			xls: "application/vnd.ms-excel",
+			xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+			ods: "application/vnd.oasis.opendocument.spreadsheet"
+		};
 		let chaptersBySubject = {};
 		let activeChapterId = null;
 		let pendingImportedChapters = null;
 		let activeCourseSubjectKey = null;
 		let activeCourseChapterId = null;
 		let activeCourseMode = "text";
-		let coursePhotoPreviewUrl = null;
+		let pendingCourseFiles = [];
+		let savedCourseRange = null;
+		let editingCourseItemId = null;
 
 		try {
 			const savedChapters = JSON.parse(localStorage.getItem(chaptersStorageKey) || "{}");
@@ -746,6 +857,157 @@
 			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
 		}
 
+		function isSafeCourseColor(value) {
+			return /^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(value) ||
+				/^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/i.test(value);
+		}
+
+		function isSafeCourseFontSize(value) {
+			const match = /^(\d+(?:\.\d+)?)px$/.exec(value);
+			if (!match) return false;
+			const size = Number(match[1]);
+			return size >= 12 && size <= 48;
+		}
+
+		function sanitizeCourseMarkup(markup) {
+			const parsed = new DOMParser().parseFromString(markup, "text/html");
+			const cleanRoot = document.createElement("div");
+			const allowedTags = new Set(["B", "STRONG", "I", "EM", "U", "P", "DIV", "BR", "H2", "H3", "UL", "OL", "LI", "SPAN", "FONT"]);
+			const blockedTags = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH"]);
+
+			function copyChildren(source, target) {
+				for (const node of source.childNodes) {
+					if (node.nodeType === Node.TEXT_NODE) {
+						target.append(document.createTextNode((node.nodeValue || "").replaceAll("\u200b", "")));
+						continue;
+					}
+					if (node.nodeType !== Node.ELEMENT_NODE || blockedTags.has(node.tagName)) continue;
+					if (!allowedTags.has(node.tagName)) {
+						copyChildren(node, target);
+						continue;
+					}
+
+					const tagName = node.tagName === "FONT" ? "SPAN" : node.tagName.toLowerCase();
+					const cleanNode = document.createElement(tagName);
+					const color = node.tagName === "FONT" ? node.getAttribute("color") : node.style.color;
+					if ((node.tagName === "FONT" || node.tagName === "SPAN") && color && isSafeCourseColor(color)) {
+						cleanNode.style.color = color;
+					}
+					const fontSize = node.style.fontSize;
+					if (node.tagName === "SPAN" && fontSize && isSafeCourseFontSize(fontSize)) cleanNode.style.fontSize = fontSize;
+					if (node.tagName === "OL") {
+						const listStyle = node.dataset.courseListStyle;
+						if (["roman-upper", "decimal", "alpha-upper", "alpha-lower"].includes(listStyle)) cleanNode.dataset.courseListStyle = listStyle;
+						const listType = node.getAttribute("type");
+						if (["1", "I", "A", "a"].includes(listType)) cleanNode.setAttribute("type", listType);
+					}
+					if (node.tagName === "UL" && node.classList.contains("course-list-dash")) {
+						cleanNode.classList.add("course-list-dash");
+					}
+					copyChildren(node, cleanNode);
+					target.append(cleanNode);
+				}
+			}
+
+			copyChildren(parsed.body, cleanRoot);
+			return cleanRoot.innerHTML;
+		}
+
+		function getCoursePlainText(markup) {
+			return new DOMParser().parseFromString(markup, "text/html").body.textContent || "";
+		}
+
+		function rememberCourseSelection() {
+			const selection = window.getSelection();
+			if (selection?.rangeCount && courseEditor.contains(selection.anchorNode)) {
+				savedCourseRange = selection.getRangeAt(0).cloneRange();
+			}
+		}
+
+		function restoreCourseSelection() {
+			courseEditor.focus({ preventScroll: true });
+			const selection = window.getSelection();
+			selection.removeAllRanges();
+			if (savedCourseRange && courseEditor.contains(savedCourseRange.commonAncestorContainer)) {
+				selection.addRange(savedCourseRange);
+			} else {
+				const range = document.createRange();
+				range.selectNodeContents(courseEditor);
+				range.collapse(false);
+				selection.addRange(range);
+			}
+		}
+
+		function applyCourseCommand(command, value = null) {
+			restoreCourseSelection();
+			document.execCommand(command, false, value);
+			rememberCourseSelection();
+		}
+
+		function applyCourseFontSize(size) {
+			if (![14, 16, 18, 20, 24, 28, 32, 36].includes(size)) return;
+			restoreCourseSelection();
+			const selection = window.getSelection();
+			if (!selection.rangeCount) return;
+			const range = selection.getRangeAt(0);
+			const span = document.createElement("span");
+			span.style.fontSize = `${size}px`;
+			if (range.collapsed) {
+				const marker = document.createTextNode("\u200b");
+				span.append(marker);
+				range.insertNode(span);
+				const cursor = document.createRange();
+				cursor.setStart(marker, marker.length);
+				cursor.collapse(true);
+				selection.removeAllRanges();
+				selection.addRange(cursor);
+			} else {
+				span.append(range.extractContents());
+				range.insertNode(span);
+				const formattedRange = document.createRange();
+				formattedRange.selectNodeContents(span);
+				selection.removeAllRanges();
+				selection.addRange(formattedRange);
+			}
+			rememberCourseSelection();
+		}
+
+		function applyCourseListStyle(style) {
+			restoreCourseSelection();
+			const selection = window.getSelection();
+			const anchor = selection.anchorNode?.nodeType === Node.ELEMENT_NODE ? selection.anchorNode : selection.anchorNode?.parentElement;
+			let currentList = anchor?.closest("ol, ul");
+			const orderedTypes = { "roman-upper": "I", decimal: "1", "alpha-upper": "A", "alpha-lower": "a" };
+			const isOrderedStyle = Object.hasOwn(orderedTypes, style);
+
+			if (currentList && courseEditor.contains(currentList) && ((isOrderedStyle && currentList.tagName === "UL") || (!isOrderedStyle && currentList.tagName === "OL"))) {
+				const replacement = document.createElement(isOrderedStyle ? "ol" : "ul");
+				while (currentList.firstChild) replacement.append(currentList.firstChild);
+				currentList.replaceWith(replacement);
+				currentList = replacement;
+			}
+
+			if (!currentList || !courseEditor.contains(currentList)) {
+				document.execCommand(isOrderedStyle ? "insertOrderedList" : "insertUnorderedList");
+				const updatedSelection = window.getSelection();
+				const updatedAnchor = updatedSelection.anchorNode?.nodeType === Node.ELEMENT_NODE ? updatedSelection.anchorNode : updatedSelection.anchorNode?.parentElement;
+				currentList = updatedAnchor?.closest(isOrderedStyle ? "ol" : "ul");
+			}
+
+			if (currentList && courseEditor.contains(currentList)) {
+				if (isOrderedStyle) {
+					currentList.setAttribute("type", orderedTypes[style]);
+					currentList.dataset.courseListStyle = style;
+				} else {
+					currentList.classList.toggle("course-list-dash", style === "dash");
+				}
+				const wrapper = currentList.parentElement;
+				const onlyContainsList = wrapper && [...wrapper.childNodes].every((node) => node === currentList || (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()));
+				if (onlyContainsList && wrapper !== courseEditor && ["P", "DIV"].includes(wrapper.tagName)) wrapper.replaceWith(currentList);
+			}
+			rememberCourseSelection();
+		}
+
 		function renderCourseItems() {
 			const chapter = getActiveCourseChapter();
 			const items = Array.isArray(chapter?.courseItems) ? chapter.courseItems : [];
@@ -753,9 +1015,14 @@
 				const entry = document.createElement("article");
 				entry.className = "course-entry";
 				if (item.type === "text") {
-					const text = document.createElement("p");
+					const text = document.createElement("div");
 					text.className = "course-entry-text";
-					text.textContent = item.content;
+					if (item.format === "html") {
+						text.dataset.format = "html";
+						text.innerHTML = sanitizeCourseMarkup(item.content);
+					} else {
+						text.textContent = item.content;
+					}
 					entry.append(text);
 				} else if (item.type === "image") {
 					const image = document.createElement("img");
@@ -769,14 +1036,45 @@
 						caption.textContent = item.name;
 						entry.append(caption);
 					}
+				} else if (item.type === "file") {
+					const fileCard = document.createElement("div");
+					fileCard.className = "course-file-item";
+					const extension = item.name.split(".").pop().slice(0, 5);
+					const typeLabel = document.createElement("span");
+					typeLabel.className = "course-file-type";
+					typeLabel.textContent = extension;
+					const meta = document.createElement("div");
+					meta.className = "course-file-meta";
+					const name = document.createElement("span");
+					name.className = "course-file-name";
+					name.textContent = item.name;
+					const size = document.createElement("span");
+					size.className = "course-file-size";
+					size.textContent = `${Math.max(1, Math.round(item.size / 1024))} Ko`;
+					meta.append(name, size);
+					const downloadLink = document.createElement("a");
+					downloadLink.className = "course-entry-file-link";
+					downloadLink.href = item.content;
+					downloadLink.download = item.name;
+					downloadLink.textContent = "Télécharger";
+					fileCard.append(typeLabel, meta, downloadLink);
+					entry.append(fileCard);
 				}
 
+				const actions = document.createElement("div");
+				actions.className = "course-entry-actions";
+				const editButton = document.createElement("button");
+				editButton.type = "button";
+				editButton.className = "course-entry-edit";
+				editButton.dataset.editCourseId = item.id;
+				editButton.textContent = "Modifier";
 				const removeButton = document.createElement("button");
 				removeButton.type = "button";
 				removeButton.className = "course-entry-remove";
 				removeButton.dataset.courseId = item.id;
 				removeButton.textContent = "Supprimer";
-				entry.append(removeButton);
+				actions.append(editButton, removeButton);
+				entry.append(actions);
 				return entry;
 			}));
 			courseEmpty.hidden = items.length > 0;
@@ -789,27 +1087,153 @@
 			document.querySelector("#course-mode-photo").setAttribute("aria-pressed", String(!textSelected));
 			courseTextField.hidden = !textSelected;
 			coursePhotoField.hidden = textSelected;
+			courseTextField.inert = !textSelected;
+			coursePhotoField.inert = textSelected;
+			courseTextField.setAttribute("aria-hidden", String(!textSelected));
+			coursePhotoField.setAttribute("aria-hidden", String(textSelected));
 			courseError.textContent = "";
 		}
 
 		function releaseCoursePreview() {
-			if (coursePhotoPreviewUrl) URL.revokeObjectURL(coursePhotoPreviewUrl);
-			coursePhotoPreviewUrl = null;
-			coursePhotoPreview.removeAttribute("src");
-			coursePhotoPreview.hidden = true;
+			pendingCourseFiles.forEach((entry) => {
+				if (entry.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+			});
+			pendingCourseFiles = [];
+			renderPendingCourseFiles();
 		}
 
-		function openCourseDialog() {
+		function renderPendingCourseFiles() {
+			courseFileList.replaceChildren(...pendingCourseFiles.map((entry) => {
+				const row = document.createElement("div");
+				row.className = "course-file-item";
+				if (entry.previewUrl) {
+					const preview = document.createElement("img");
+					preview.className = "course-file-thumb";
+					preview.src = entry.previewUrl;
+					preview.alt = "";
+					row.append(preview);
+				} else {
+					const typeLabel = document.createElement("span");
+					typeLabel.className = "course-file-type";
+					typeLabel.textContent = entry.file.name.split(".").pop().slice(0, 5);
+					row.append(typeLabel);
+				}
+				const meta = document.createElement("div");
+				meta.className = "course-file-meta";
+				const name = document.createElement("span");
+				name.className = "course-file-name";
+				name.textContent = entry.file.name;
+				const size = document.createElement("span");
+				size.className = "course-file-size";
+				size.textContent = `${Math.max(1, Math.round(entry.file.size / 1024))} Ko`;
+				meta.append(name, size);
+				const removeButton = document.createElement("button");
+				removeButton.type = "button";
+				removeButton.className = "course-file-remove";
+				removeButton.dataset.pendingFileId = entry.id;
+				removeButton.textContent = "Retirer";
+				row.append(meta, removeButton);
+				return row;
+			}));
+			courseFileList.hidden = pendingCourseFiles.length === 0;
+		}
+
+		function getCourseFileMimeType(file) {
+			const extension = file.name.split(".").pop().toLowerCase();
+			const mappedType = supportedCourseMimeTypes[extension];
+			if (!mappedType) return null;
+			return file.type.startsWith("image/") ? file.type : mappedType;
+		}
+
+		function addPendingCourseFiles(files) {
+			const incomingFiles = [...files];
+			if (editingCourseItemId && incomingFiles.length + pendingCourseFiles.length > 1) {
+				courseError.textContent = "Choisis un seul fichier de remplacement.";
+				return;
+			}
+			let rejected = 0;
+			for (const file of incomingFiles) {
+				const mimeType = getCourseFileMimeType(file);
+				const isImage = mimeType?.startsWith("image/");
+				if (!mimeType || (isImage ? file.size > 25_000_000 : file.size > 1_250_000)) {
+					rejected++;
+					continue;
+				}
+				if (pendingCourseFiles.some((entry) => entry.file.name === file.name && entry.file.size === file.size && entry.file.lastModified === file.lastModified)) continue;
+				pendingCourseFiles.push({
+					id: crypto.randomUUID(),
+					file,
+					mimeType,
+					isImage,
+					previewUrl: isImage ? URL.createObjectURL(file) : null
+				});
+			}
+			renderPendingCourseFiles();
+			courseError.textContent = rejected ? "Certains fichiers ne sont pas pris en charge ou sont trop volumineux." : "";
+		}
+
+		function readCourseFileAsDataUrl(file) {
+			return new Promise((resolve, reject) => {
+				const reader = new FileReader();
+				reader.addEventListener("load", () => resolve(reader.result));
+				reader.addEventListener("error", () => reject(new Error(`Impossible de lire ${file.name}.`)));
+				reader.readAsDataURL(file);
+			});
+		}
+
+		function renderCurrentCourseFile(item) {
+			courseCurrentFile.replaceChildren();
+			courseCurrentFile.hidden = !item;
+			if (!item) return;
+
+			if (item.type === "image") {
+				const preview = document.createElement("img");
+				preview.className = "course-file-thumb";
+				preview.src = item.content;
+				preview.alt = "Photo du cours actuelle";
+				courseCurrentFile.append(preview);
+			} else {
+				const typeLabel = document.createElement("span");
+				typeLabel.className = "course-file-type";
+				typeLabel.textContent = item.name.split(".").pop().slice(0, 5);
+				courseCurrentFile.append(typeLabel);
+			}
+
+			const name = document.createElement("span");
+			name.className = "course-file-name";
+			name.textContent = item.name;
+			const note = document.createElement("span");
+			note.className = "course-file-size";
+			note.textContent = "Fichier actuel · choisis un nouveau fichier pour le remplacer";
+			courseCurrentFile.append(name, note);
+		}
+
+		function openCourseDialog(courseItem = null) {
 			courseForm.reset();
+			courseEditor.innerHTML = "";
+			savedCourseRange = null;
+			editingCourseItemId = courseItem?.id ?? null;
 			courseError.textContent = "";
 			releaseCoursePreview();
-			setCourseMode("text");
+			renderCurrentCourseFile(null);
+			const editingText = courseItem?.type === "text";
+			setCourseMode(courseItem && !editingText ? "photo" : "text");
+			document.querySelector("#course-mode-text").disabled = Boolean(courseItem && !editingText);
+			document.querySelector("#course-mode-photo").disabled = Boolean(courseItem && editingText);
+			document.querySelector("#course-dialog-title").textContent = courseItem ? (editingText ? "Modifier le texte" : "Remplacer le fichier") : "Ajouter du cours";
+			courseSaveButton.textContent = courseItem ? (editingText ? "Enregistrer les modifications" : "Remplacer le fichier") : "Ajouter au chapitre";
+			if (editingText) {
+				if (courseItem.format === "html") courseEditor.innerHTML = sanitizeCourseMarkup(courseItem.content);
+				else courseEditor.textContent = courseItem.content;
+			} else if (courseItem) {
+				renderCurrentCourseFile(courseItem);
+			}
 			courseDialog.showModal();
-			courseTextInput.focus();
+			if (editingText || !courseItem) courseEditor.focus();
 		}
 
 		async function compressCoursePhoto(file) {
-			if (!file || !file.type.startsWith("image/")) throw new Error("Choisis un fichier image.");
+			if (!file) throw new Error("Choisis un fichier image.");
 			const bitmap = await createImageBitmap(file);
 			const maxSide = 1600;
 			const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
@@ -919,20 +1343,34 @@
 					}
 					chapterIds.add(chapter.id);
 					const courseItemIds = new Set();
-					const courseItems = (chapter.courseItems || []).map((courseItem) => {
+					const rawCourseItems = chapter.courseItems === undefined ? [] : chapter.courseItems;
+					if (!Array.isArray(rawCourseItems)) throw new Error("course-items");
+					const courseItems = rawCourseItems.map((courseItem) => {
 						if (!courseItem || typeof courseItem.id !== "string" || !courseItem.id || courseItemIds.has(courseItem.id)) {
 							throw new Error("course-item");
 						}
 						courseItemIds.add(courseItem.id);
-						if (courseItem.type === "text" && typeof courseItem.content === "string" && courseItem.content.trim() && courseItem.content.length <= 30000) {
-							return { id: courseItem.id, type: "text", content: courseItem.content };
+						if (courseItem.type === "text" && typeof courseItem.content === "string" && courseItem.content.trim()) {
+							const format = courseItem.format || "plain";
+							if (format === "plain" && courseItem.content.length <= 30000) {
+								return { id: courseItem.id, type: "text", format: "plain", content: courseItem.content };
+							}
+							if (format === "html" && courseItem.content.length <= 60000) {
+								const content = sanitizeCourseMarkup(courseItem.content);
+								const plainText = getCoursePlainText(content).trim();
+								if (plainText && plainText.length <= 30000) return { id: courseItem.id, type: "text", format: "html", content };
+							}
 						}
 						if (courseItem.type === "image" && typeof courseItem.content === "string" && /^data:image\/jpeg;base64,/.test(courseItem.content) && courseItem.content.length <= 1_800_000 && typeof courseItem.name === "string") {
 							return { id: courseItem.id, type: "image", content: courseItem.content, name: courseItem.name.slice(0, 255) };
 						}
+						if (courseItem.type === "file" && typeof courseItem.mimeType === "string" && Object.values(supportedCourseMimeTypes).includes(courseItem.mimeType) &&
+							typeof courseItem.content === "string" && courseItem.content.startsWith(`data:${courseItem.mimeType};base64,`) && courseItem.content.length <= 1_800_000 &&
+							typeof courseItem.name === "string" && courseItem.name.length <= 255 && Number.isInteger(courseItem.size) && courseItem.size > 0 && courseItem.size <= 1_250_000) {
+							return { id: courseItem.id, type: "file", mimeType: courseItem.mimeType, content: courseItem.content, name: courseItem.name, size: courseItem.size };
+						}
 						throw new Error("course-item");
 					});
-					if (chapter.courseItems !== undefined && !Array.isArray(chapter.courseItems)) throw new Error("course-items");
 					return { id: chapter.id, title: chapter.title.trim(), courseItems };
 				});
 				importedSubjectIds.add(item.id);
@@ -986,28 +1424,68 @@
 			selectChapterTab(chapterTabs[nextIndex], true);
 		});
 
-		document.querySelector("#add-course").addEventListener("click", openCourseDialog);
+		document.querySelector("#add-course").addEventListener("click", () => openCourseDialog());
 		document.querySelector("#course-mode-text").addEventListener("click", () => setCourseMode("text"));
 		document.querySelector("#course-mode-photo").addEventListener("click", () => setCourseMode("photo"));
 		document.querySelector("#cancel-course").addEventListener("click", () => courseDialog.close());
 		courseDialog.addEventListener("close", () => {
 			releaseCoursePreview();
 			courseForm.reset();
+			courseEditor.innerHTML = "";
+			savedCourseRange = null;
+			editingCourseItemId = null;
+			renderCurrentCourseFile(null);
 			setCourseMode("text");
+			document.querySelector("#course-mode-text").disabled = false;
+			document.querySelector("#course-mode-photo").disabled = false;
 		});
 
+		document.addEventListener("selectionchange", rememberCourseSelection);
+		courseEditor.addEventListener("keyup", rememberCourseSelection);
+		courseEditor.addEventListener("mouseup", rememberCourseSelection);
+		courseEditor.addEventListener("input", rememberCourseSelection);
+
+		document.querySelectorAll("[data-course-command]").forEach((button) => {
+			button.addEventListener("mousedown", (event) => event.preventDefault());
+			button.addEventListener("click", () => applyCourseCommand(button.dataset.courseCommand));
+		});
+
+		document.querySelectorAll("[data-course-list]").forEach((button) => {
+			button.addEventListener("mousedown", (event) => event.preventDefault());
+			button.addEventListener("click", () => applyCourseListStyle(button.dataset.courseList));
+		});
+
+		courseFontSize.addEventListener("pointerdown", rememberCourseSelection);
+		courseFontSize.addEventListener("focus", rememberCourseSelection);
+		courseFontSize.addEventListener("change", () => applyCourseFontSize(Number(courseFontSize.value)));
+
+		courseTextColor.addEventListener("pointerdown", rememberCourseSelection);
+		courseTextColor.addEventListener("focus", rememberCourseSelection);
+		courseTextColor.addEventListener("change", () => applyCourseCommand("foreColor", courseTextColor.value));
+
 		coursePhotoInput.addEventListener("change", () => {
-			releaseCoursePreview();
-			const file = coursePhotoInput.files[0];
-			if (!file) return;
-			if (!file.type.startsWith("image/")) {
-				courseError.textContent = "Choisis un fichier image.";
-				return;
-			}
-			coursePhotoPreviewUrl = URL.createObjectURL(file);
-			coursePhotoPreview.src = coursePhotoPreviewUrl;
-			coursePhotoPreview.hidden = false;
-			courseError.textContent = "";
+			addPendingCourseFiles(coursePhotoInput.files);
+			coursePhotoInput.value = "";
+		});
+		courseDropzone.addEventListener("dragover", (event) => {
+			event.preventDefault();
+			courseDropzone.classList.add("is-dragging");
+		});
+		courseDropzone.addEventListener("dragleave", (event) => {
+			if (!courseDropzone.contains(event.relatedTarget)) courseDropzone.classList.remove("is-dragging");
+		});
+		courseDropzone.addEventListener("drop", (event) => {
+			event.preventDefault();
+			courseDropzone.classList.remove("is-dragging");
+			addPendingCourseFiles(event.dataTransfer.files);
+		});
+		courseFileList.addEventListener("click", (event) => {
+			const removeButton = event.target.closest("button[data-pending-file-id]");
+			if (!removeButton) return;
+			const entry = pendingCourseFiles.find((file) => file.id === removeButton.dataset.pendingFileId);
+			if (entry?.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+			pendingCourseFiles = pendingCourseFiles.filter((file) => file.id !== removeButton.dataset.pendingFileId);
+			renderPendingCourseFiles();
 		});
 
 		courseForm.addEventListener("submit", async (event) => {
@@ -1018,18 +1496,28 @@
 				return;
 			}
 
-			let item;
+			let items;
 			courseSaveButton.disabled = true;
 			courseError.textContent = "";
 			try {
 				if (activeCourseMode === "text") {
-					const content = courseTextInput.value.trim();
-					if (!content) throw new Error("Ajoute du texte avant de continuer.");
-					item = { id: crypto.randomUUID(), type: "text", content };
+					const content = sanitizeCourseMarkup(courseEditor.innerHTML);
+					const plainText = getCoursePlainText(content).trim();
+					if (!plainText) throw new Error("Ajoute du texte avant de continuer.");
+					if (plainText.length > 30000 || content.length > 60000) throw new Error("Le cours est trop long.");
+					items = [{ id: crypto.randomUUID(), type: "text", format: "html", content }];
 				} else {
-					const file = coursePhotoInput.files[0];
-					if (!file) throw new Error("Choisis une photo avant de continuer.");
-					item = { id: crypto.randomUUID(), type: "image", content: await compressCoursePhoto(file), name: file.name };
+					if (pendingCourseFiles.length === 0) {
+						throw new Error(editingCourseItemId ? "Choisis un fichier pour le remplacer." : "Dépose ou sélectionne au moins un fichier.");
+					}
+					if (editingCourseItemId && pendingCourseFiles.length !== 1) throw new Error("Le remplacement doit contenir un seul fichier.");
+					items = await Promise.all(pendingCourseFiles.map(async ({ file, mimeType, isImage }) => {
+						if (isImage) return { id: crypto.randomUUID(), type: "image", content: await compressCoursePhoto(file), name: file.name };
+						if (file.size > 1_250_000) throw new Error(`${file.name} dépasse la taille maximale de 1,25 Mo.`);
+						const content = await readCourseFileAsDataUrl(file);
+						if (content.length > 1_800_000) throw new Error(`${file.name} est trop volumineux pour la sauvegarde locale.`);
+						return { id: crypto.randomUUID(), type: "file", mimeType, content, name: file.name, size: file.size };
+					}));
 				}
 			} catch (error) {
 				courseError.textContent = error.message || "Le cours n’a pas pu être préparé.";
@@ -1038,11 +1526,30 @@
 			}
 
 			const previousItems = chapter.courseItems;
-			chapter.courseItems = [...(Array.isArray(previousItems) ? previousItems : []), item];
+			const existingItems = Array.isArray(previousItems) ? previousItems : [];
+			let nextItems;
+			if (editingCourseItemId) {
+				if (items.length !== 1) {
+					courseError.textContent = "Le remplacement doit contenir un seul élément.";
+					courseSaveButton.disabled = false;
+					return;
+				}
+				const index = existingItems.findIndex((item) => item.id === editingCourseItemId);
+				if (index === -1) {
+					courseError.textContent = "Cet élément n’existe plus.";
+					courseSaveButton.disabled = false;
+					return;
+				}
+				items[0].id = editingCourseItemId;
+				nextItems = [...existingItems];
+				nextItems[index] = items[0];
+			} else {
+				nextItems = [...existingItems, ...items];
+			}
+			chapter.courseItems = nextItems;
 			try {
 				localStorage.setItem(chaptersStorageKey, JSON.stringify(chaptersBySubject));
 				renderCourseItems();
-				courseStatus.textContent = "Cours ajouté au chapitre.";
 				courseDialog.close();
 			} catch {
 				if (previousItems === undefined) delete chapter.courseItems;
@@ -1054,19 +1561,23 @@
 		});
 
 		courseList.addEventListener("click", (event) => {
-			const button = event.target.closest("button[data-course-id]");
-			if (!button) return;
 			const chapter = getActiveCourseChapter();
 			if (!chapter || !Array.isArray(chapter.courseItems)) return;
+			const editButton = event.target.closest("button[data-edit-course-id]");
+			if (editButton) {
+				const courseItem = chapter.courseItems.find((item) => item.id === editButton.dataset.editCourseId);
+				if (courseItem) openCourseDialog(courseItem);
+				return;
+			}
+			const button = event.target.closest("button[data-course-id]");
+			if (!button) return;
 			const previousItems = chapter.courseItems;
 			chapter.courseItems = previousItems.filter((item) => item.id !== button.dataset.courseId);
 			try {
 				localStorage.setItem(chaptersStorageKey, JSON.stringify(chaptersBySubject));
 				renderCourseItems();
-				courseStatus.textContent = "Élément supprimé.";
 			} catch {
 				chapter.courseItems = previousItems;
-				courseStatus.textContent = "Suppression impossible.";
 			}
 		});
 
