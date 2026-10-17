@@ -229,6 +229,37 @@
 		.detail-title-row h1 { min-width: 0; overflow-wrap: anywhere; }
 		.home-title { margin-bottom: 28px; }
 
+		.chapter-tabs {
+			display: flex;
+			gap: 8px;
+			margin-top: 38px;
+			border-bottom: 1px solid var(--line);
+		}
+
+		.chapter-tab {
+			min-height: 48px;
+			padding: 0 18px;
+			border: 0;
+			border-bottom: 2px solid transparent;
+			color: var(--muted);
+			background: transparent;
+			cursor: pointer;
+			font-size: 16px;
+			font-weight: 600;
+			transition: color .18s ease, border-color .18s ease;
+		}
+
+		.chapter-tab:hover { color: var(--text); }
+		.chapter-tab[aria-selected="true"] { border-bottom-color: var(--violet); color: var(--text); }
+		.chapter-tab:focus-visible { outline: 2px solid var(--violet); outline-offset: -4px; border-radius: 5px 5px 0 0; }
+
+		.chapter-tabpanel {
+			min-height: 320px;
+			padding-top: 24px;
+			outline: none;
+		}
+
+		.chapter-tabpanel:focus-visible { outline: 2px solid var(--violet); outline-offset: 4px; }
 		.detail-home-button {
 			flex: 0 0 auto;
 			min-height: 44px;
@@ -425,6 +456,9 @@
 			.lede { font-size: 16px; }
 			.section-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
 			.chapter-add { padding: 0 12px; font-size: 14px; }
+			.chapter-tabs { gap: 0; margin-top: 28px; }
+			.chapter-tab { flex: 1; min-height: 46px; padding: 0 8px; font-size: 15px; }
+			.chapter-tabpanel { min-height: 240px; }
 			.chapter-toolbar { align-items: flex-start; flex-direction: column; gap: 10px; }
 			.chapter-row { align-items: flex-start; flex-direction: column; gap: 10px; }
 			.chapter-actions { width: 100%; }
@@ -493,6 +527,14 @@
 						<h1 id="chapter-detail-title"></h1>
 						<button id="chapter-return-button" class="detail-home-button" type="button">← Retour</button>
 					</div>
+					<div class="chapter-tabs" role="tablist" aria-label="Contenu du chapitre">
+						<button id="chapter-tab-saisie" class="chapter-tab" type="button" role="tab" aria-controls="chapter-panel-saisie" aria-selected="true" tabindex="0">Saisie</button>
+						<button id="chapter-tab-ressources" class="chapter-tab" type="button" role="tab" aria-controls="chapter-panel-ressources" aria-selected="false" tabindex="-1">Ressources</button>
+						<button id="chapter-tab-revision" class="chapter-tab" type="button" role="tab" aria-controls="chapter-panel-revision" aria-selected="false" tabindex="-1">Révision</button>
+					</div>
+					<section id="chapter-panel-saisie" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-saisie" tabindex="0"></section>
+					<section id="chapter-panel-ressources" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-ressources" tabindex="0" hidden></section>
+					<section id="chapter-panel-revision" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-revision" tabindex="0" hidden></section>
 				</section>
 
 		</main>
@@ -558,6 +600,8 @@
 		const deleteChapterDialog = document.querySelector("#delete-chapter-dialog");
 		const chapterDetailTitle = document.querySelector("#chapter-detail-title");
 		const chapterReturnButton = document.querySelector("#chapter-return-button");
+		const chapterTabs = [...document.querySelectorAll(".chapter-tab")];
+		const chapterTabList = document.querySelector('[role="tablist"]');
 		const backupStorageFormat = "revision-subjects-backup";
 		const backupButton = document.querySelector("#backup-button");
 		const backupDialog = document.querySelector("#backup-dialog");
@@ -601,11 +645,22 @@
 		function showChapter(chapter, subjectKey) {
 			chapterDetailTitle.textContent = chapter.title;
 			chapterReturnButton.dataset.subject = subjectKey;
+			selectChapterTab(chapterTabs[0]);
 			selectionView.hidden = true;
 			subjectDetailView.hidden = true;
 			chapterDetailView.hidden = false;
 			backupButton.hidden = true;
 			document.title = `${chapter.title} — Révision`;
+		}
+
+		function selectChapterTab(selectedTab, focusTab = false) {
+			chapterTabs.forEach((tab) => {
+				const selected = tab === selectedTab;
+				tab.setAttribute("aria-selected", String(selected));
+				tab.tabIndex = selected ? 0 : -1;
+				document.querySelector(`#${tab.getAttribute("aria-controls")}`).hidden = !selected;
+			});
+			if (focusTab) selectedTab.focus();
 		}
 
 		function renderChapters() {
@@ -738,6 +793,19 @@
 
 		document.querySelector("#detail-home-button").addEventListener("click", () => {
 			location.hash = "";
+		});
+
+		chapterTabs.forEach((tab) => {
+			tab.addEventListener("click", () => selectChapterTab(tab));
+		});
+
+		chapterTabList.addEventListener("keydown", (event) => {
+			const currentIndex = chapterTabs.indexOf(document.activeElement);
+			if (currentIndex === -1 || !["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+			event.preventDefault();
+			const direction = event.key === "ArrowRight" ? 1 : -1;
+			const nextIndex = (currentIndex + direction + chapterTabs.length) % chapterTabs.length;
+			selectChapterTab(chapterTabs[nextIndex], true);
 		});
 
 		chapterReturnButton.addEventListener("click", () => {
