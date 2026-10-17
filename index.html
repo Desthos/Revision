@@ -690,6 +690,10 @@
 			backupFileInput.value = "";
 		}
 
+		function formatChapterCount(count) {
+			return `${count} ${count === 1 ? "chapitre" : "chapitres"}`;
+		}
+
 		function syncRoute() {
 			const subject = subjects[decodeURIComponent(location.hash.slice(1))];
 			if (subject) showSubject(subject);
@@ -720,7 +724,7 @@
 			downloadLink.remove();
 			window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
 			const chapterCount = backup.subjects.reduce((total, subject) => total + subject.chapters.length, 0);
-			backupStatus.textContent = `Sauvegarde exportée : ${backup.subjects.length} matières et ${chapterCount} chapitres.`;
+			backupStatus.textContent = `Sauvegarde exportée : ${backup.subjects.length} matières et ${formatChapterCount(chapterCount)}.`;
 		});
 
 		document.querySelector("#import-backup").addEventListener("click", () => backupFileInput.click());
@@ -733,7 +737,7 @@
 				const backup = JSON.parse(await file.text());
 				pendingImportedChapters = validateBackup(backup);
 				const chapterCount = Object.values(pendingImportedChapters).reduce((total, chapters) => total + chapters.length, 0);
-				backupStatus.textContent = `Fichier valide : ${Object.keys(subjects).length} matières et ${chapterCount} chapitres. Confirme pour remplacer les chapitres actuels.`;
+				backupStatus.textContent = `Fichier valide : ${Object.keys(subjects).length} matières et ${formatChapterCount(chapterCount)}. Confirme pour remplacer les chapitres actuels.`;
 				backupActions.hidden = true;
 				backupImportActions.hidden = false;
 			} catch {
@@ -761,7 +765,7 @@
 				chaptersBySubject = pendingImportedChapters;
 				const chapterCount = Object.values(chaptersBySubject).reduce((total, chapters) => total + chapters.length, 0);
 				pendingImportedChapters = null;
-				backupStatus.textContent = `Import réussi : ${Object.keys(subjects).length} matières et ${chapterCount} chapitres.`;
+				backupStatus.textContent = `Import réussi : ${Object.keys(subjects).length} matières et ${formatChapterCount(chapterCount)}.`;
 				backupActions.hidden = false;
 				backupImportActions.hidden = true;
 			} catch {
