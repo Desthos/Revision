@@ -786,14 +786,6 @@
 		const chapterReturnButton = document.querySelector("#chapter-return-button");
 		const chapterTabs = [...document.querySelectorAll(".chapter-tab")];
 		const chapterTabList = document.querySelector('[role="tablist"]');
-		const resourcesForm = document.querySelector("#resources-form");
-		const resourcesQuery = document.querySelector("#resources-query");
-		const resourcesSubmit = document.querySelector("#resources-submit");
-		const resourcesStatus = document.querySelector("#resources-status");
-		const resourcesResult = document.querySelector("#resources-result");
-		const revisionSubmit = document.querySelector("#revision-submit");
-		const revisionStatus = document.querySelector("#revision-status");
-		const revisionResult = document.querySelector("#revision-result");
 		const courseList = document.querySelector("#course-items");
 		const courseEmpty = document.querySelector("#course-empty");
 		const courseDialog = document.querySelector("#course-dialog");
@@ -902,40 +894,6 @@
 		function getActiveCourseChapter() {
 			const chapters = chaptersBySubject[activeCourseSubjectKey] || [];
 			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
-		}
-
-		async function requestGemini(endpoint, payload, button, status, result) {
-			button.disabled = true;
-			status.textContent = "Gemini prépare la réponse…";
-			result.hidden = true;
-			result.textContent = "";
-			try {
-				const response = await fetch(endpoint, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(payload)
-				});
-				const data = await response.json().catch(() => ({}));
-				if (!response.ok) throw new Error(data.detail || `Erreur ${response.status}.`);
-				if (typeof data.response !== "string" || !data.response.trim()) throw new Error("Gemini n’a renvoyé aucun texte.");
-				result.textContent = data.response;
-				result.hidden = false;
-				status.textContent = "";
-			} catch (error) {
-				status.textContent = error.message || "Impossible de joindre Gemini.";
-			} finally {
-				button.disabled = false;
-			}
-		}
-
-		function getActiveChapterText() {
-			const chapter = getActiveCourseChapter();
-			return (chapter?.courseItems || [])
-				.filter((item) => item.type === "text")
-				.map((item) => item.format === "html" ? getCoursePlainText(item.content) : item.content)
-				.join("\n\n")
-				.trim()
-				.slice(0, 30000);
 		}
 
 		function isSafeCourseColor(value) {
@@ -1503,28 +1461,6 @@
 			const direction = event.key === "ArrowRight" ? 1 : -1;
 			const nextIndex = (currentIndex + direction + chapterTabs.length) % chapterTabs.length;
 			selectChapterTab(chapterTabs[nextIndex], true);
-		});
-
-		resourcesForm.addEventListener("submit", async (event) => {
-			event.preventDefault();
-			const query = resourcesQuery.value.trim();
-			if (!query) return;
-			await requestGemini("/api/resources", {
-				chapter_title: chapterDetailTitle.textContent,
-				query
-			}, resourcesSubmit, resourcesStatus, resourcesResult);
-		});
-
-		revisionSubmit.addEventListener("click", async () => {
-			const course = getActiveChapterText();
-			if (!course) {
-				revisionStatus.textContent = "Ajoute d’abord du cours en texte dans l’onglet Saisie.";
-				return;
-			}
-			await requestGemini("/api/revision", {
-				chapter_title: chapterDetailTitle.textContent,
-				course
-			}, revisionSubmit, revisionStatus, revisionResult);
 		});
 
 		document.querySelector("#add-course").addEventListener("click", () => openCourseDialog());
