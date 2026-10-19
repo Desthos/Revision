@@ -14,7 +14,7 @@
 
    ```env
    GEMINI_API_KEY=ta_cle_api
-   GEMINI_MODEL=models/gemini-3.8-flash
+   GEMINI_MODEL=gemini-3.8-flash
    ```
 
    `.env` est ignoré par Git; ne publie jamais cette clé.
@@ -28,4 +28,6 @@
 
 4. Ouvre `http://127.0.0.1:8000`.
 
-L’onglet Ressources utilise Google Search via Gemini. L’onglet Révision génère des questions à partir du texte saisi dans le chapitre. Les photos et documents joints ne sont pas transmis au modèle pour l’instant.
+Vérifie `http://127.0.0.1:8000/api/health` : la réponse doit être JSON avec `"gemini_configured": true`. Si tu vois une page HTML ou un refus 403, le navigateur n’est pas connecté à ce serveur FastAPI.
+
+L’onglet Ressources transmet à Gemini le texte de tous les éléments de cours du chapitre et la demande saisie. Gemini peut rechercher des ressources avec Google Search ou créer le contenu demandé à partir du cours. L’onglet Révision génère des questions à partir du texte saisi. Les photos et documents joints ne sont pas transmis au modèle pour l’instant.

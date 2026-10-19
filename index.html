@@ -272,7 +272,13 @@
 		.ai-run { min-width: 200px; min-height: 50px; }
 		.ai-run:disabled { cursor: progress; opacity: .65; }
 		.ai-status { min-height: 24px; margin: 14px 0 0; color: var(--muted); font-size: 14px; }
+		.ai-status.is-loading { display: flex; align-items: center; gap: 9px; }
+		.ai-status.is-loading::before { width: 15px; height: 15px; flex: 0 0 auto; border: 2px solid rgb(167 139 250 / 25%); border-top-color: var(--violet); border-radius: 50%; content: ""; animation: ai-status-spin 1s linear infinite; }
+		.ai-status-timer { color: var(--sky); font-variant-numeric: tabular-nums; font-weight: 650; }
+		@keyframes ai-status-spin { to { transform: rotate(360deg); } }
+		@media (prefers-reduced-motion: reduce) { .ai-status.is-loading::before { animation: none; border-color: var(--violet); } }
 		.ai-result { max-width: 1120px; min-height: 180px; margin-top: 12px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: rgb(255 255 255 / 2%); font-size: 16px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+		.ai-result a { color: var(--sky); text-underline-offset: 3px; }
 		.ai-result[hidden] { display: none; }
 
 		.course-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -647,13 +653,13 @@
 					<section id="chapter-panel-ressources" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-ressources" tabindex="0" hidden>
 						<div class="ai-panel">
 							<h2 class="ai-panel-title">Ressources du chapitre</h2>
-							<p class="ai-panel-description">Trouve des ressources pédagogiques adaptées à ce chapitre.</p>
+							<p class="ai-panel-description">Gemini s’appuie sur le cours saisi pour rechercher des ressources ou créer le contenu demandé.</p>
 							<form id="resources-form" class="ai-form">
 								<div class="ai-field">
-									<label for="resources-query">Sujet à rechercher</label>
-									<input id="resources-query" class="ai-query" type="text" maxlength="2000" required placeholder="Ex. exercices corrigés, vidéo, cours…">
+									<label for="resources-query">Que veux-tu obtenir ?</label>
+									<input id="resources-query" class="ai-query" type="text" maxlength="2000" required placeholder="Ex. crée une fiche ou trouve une vidéo sur…">
 								</div>
-								<button id="resources-submit" class="primary-button ai-run" type="submit">Chercher des ressources</button>
+								<button id="resources-submit" class="primary-button ai-run" type="submit">Demander à Gemini</button>
 							</form>
 							<p id="resources-status" class="ai-status" role="status" aria-live="polite"></p>
 							<div id="resources-result" class="ai-result" aria-live="polite" hidden></div>
@@ -785,6 +791,20 @@
 		const chapterDetailTitle = document.querySelector("#chapter-detail-title");
 		const chapterReturnButton = document.querySelector("#chapter-return-button");
 		const chapterTabs = [...document.querySelectorAll(".chapter-tab")];
+		const resourcesForm = document.querySelector("#resources-form");
+		const resourcesQuery = document.querySelector("#resources-query");
+		const resourcesSubmit = document.querySelector("#resources-submit");
+		const resourcesApiUrl = (() => {
+			const localHost = ["localhost", "127.0.0.1"].includes(window.location.hostname);
+			const localFile = window.location.protocol === "file:";
+			if (localFile || (localHost && window.location.port !== "8000")) {
+				return "http://127.0.0.1:8000/api/resources";
+			}
+			return "/api/resources";
+		})();
+		const resourcesStatus = document.querySelector("#resources-status");
+		const resourcesResult = document.querySelector("#resources-result");
+		const resourcesSubmitLabel = resourcesSubmit.textContent;
 		const chapterTabList = document.querySelector('[role="tablist"]');
 		const courseList = document.querySelector("#course-items");
 		const courseEmpty = document.querySelector("#course-empty");
@@ -867,8 +887,14 @@
 			document.title = `${subject} — Révision`;
 		}
 
+		function formatChapterPageTitle(title) {
+			return title
+				.toLocaleLowerCase("fr-FR")
+				.replace(/\p{L}/u, (letter) => letter.toLocaleUpperCase("fr-FR"));
+		}
+
 		function showChapter(chapter, subjectKey) {
-			chapterDetailTitle.textContent = chapter.title;
+			chapterDetailTitle.textContent = formatChapterPageTitle(chapter.title);
 			chapterReturnButton.dataset.subject = subjectKey;
 			activeCourseSubjectKey = subjectKey;
 			activeCourseChapterId = chapter.id;
@@ -894,6 +920,63 @@
 		function getActiveCourseChapter() {
 			const chapters = chaptersBySubject[activeCourseSubjectKey] || [];
 			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
+		}
+
+		function getChapterTextCourse(chapter) {
+			const courseItems = Array.isArray(chapter.courseItems) ? chapter.courseItems : [];
+			return courseItems
+				.filter((item) => item?.type === "text" && typeof item.content === "string")
+				.map((item) => item.format === "html" ? getCoursePlainText(item.content) : item.content)
+				.map((content) => content.trim())
+				.filter(Boolean)
+				.join("\n\n");
+		}
+
+		function renderResourceResponse(responseText) {
+			const fragment = document.createDocumentFragment();
+			const linkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)|(https?:\/\/[^\s<>"'`\])]+)/gi;
+			let lastIndex = 0;
+
+			for (const match of responseText.matchAll(linkPattern)) {
+				fragment.append(document.createTextNode(responseText.slice(lastIndex, match.index)));
+				const label = match[1];
+				const rawUrl = match[2] || match[3];
+				const trailingPunctuation = match[2] ? "" : (rawUrl.match(/[.,;:!?]+$/)?.[0] || "");
+				const href = trailingPunctuation ? rawUrl.slice(0, -trailingPunctuation.length) : rawUrl;
+				const link = document.createElement("a");
+				link.href = href;
+				link.target = "_blank";
+				link.rel = "noopener noreferrer";
+				link.textContent = label || href;
+				fragment.append(link);
+				if (trailingPunctuation) fragment.append(document.createTextNode(trailingPunctuation));
+				lastIndex = match.index + match[0].length;
+			}
+
+			fragment.append(document.createTextNode(responseText.slice(lastIndex)));
+			resourcesResult.replaceChildren(fragment);
+		}
+
+		function startAiProgress(statusElement, message) {
+			let elapsedSeconds = 0;
+			const timer = document.createElement("span");
+			timer.className = "ai-status-timer";
+			timer.setAttribute("aria-hidden", "true");
+			timer.textContent = "0 s";
+			statusElement.replaceChildren(document.createTextNode(message), timer);
+			statusElement.classList.add("is-loading");
+			statusElement.setAttribute("aria-busy", "true");
+
+			const intervalId = window.setInterval(() => {
+				elapsedSeconds += 1;
+				timer.textContent = `${elapsedSeconds} s`;
+			}, 1000);
+
+			return () => {
+				window.clearInterval(intervalId);
+				statusElement.classList.remove("is-loading");
+				statusElement.setAttribute("aria-busy", "false");
+			};
 		}
 
 		function isSafeCourseColor(value) {
@@ -1696,6 +1779,77 @@
 		document.querySelector("#add-chapter").addEventListener("click", () => openChapterDialog());
 		document.querySelector("#cancel-chapter").addEventListener("click", () => chapterDialog.close());
 		document.querySelector("#cancel-delete").addEventListener("click", () => deleteChapterDialog.close());
+
+		resourcesForm.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const chapter = getActiveCourseChapter();
+			const query = resourcesQuery.value.trim();
+			if (!chapter) {
+				resourcesStatus.textContent = "Ce chapitre n’est plus disponible.";
+				return;
+			}
+			if (query.length < 2) {
+				resourcesStatus.textContent = "Saisis un sujet à rechercher.";
+				return;
+			}
+			const course = getChapterTextCourse(chapter);
+			if (course.length > 100000) {
+				resourcesStatus.textContent = "Le cours est trop long pour être transmis en une seule demande.";
+				return;
+			}
+
+			resourcesSubmit.disabled = true;
+			resourcesSubmit.textContent = "Gemini répond…";
+			const stopAiProgress = startAiProgress(resourcesStatus, "Gemini prépare une réponse à partir du cours");
+			resourcesResult.replaceChildren();
+			resourcesResult.hidden = true;
+
+			try {
+				const response = await fetch(resourcesApiUrl, {
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ chapter_title: chapter.title, course, query })
+				});
+				if (response.status === 404 || response.status === 405) {
+					throw new Error("L’API Gemini n’est pas disponible sur ce serveur. Démarre l’application avec la commande uvicorn du README.");
+				}
+				const contentType = response.headers.get("content-type") || "";
+				if (!/json/i.test(contentType)) {
+					if (response.status === 403) {
+						throw new Error("Le serveur qui affiche cette page refuse l’API (HTTP 403). Ouvre le site avec http://127.0.0.1:8000 pour que la demande passe par FastAPI.");
+					}
+					throw new Error(`Le serveur n’a pas renvoyé une réponse API JSON (HTTP ${response.status}). Démarre l’application avec la commande uvicorn du README.`);
+				}
+				const payload = await response.json().catch(() => null);
+				if (!payload || typeof payload !== "object") {
+					throw new Error(`La réponse du serveur est invalide (HTTP ${response.status}).`);
+				}
+				if (!response.ok) {
+					const detail = Array.isArray(payload.detail)
+						? payload.detail.map((issue) => {
+							const field = Array.isArray(issue.loc) ? issue.loc.slice(1).join(".") : "";
+							return [field, issue.msg].filter(Boolean).join(" : ");
+						}).join("; ")
+						: typeof payload.detail === "string" ? payload.detail : "";
+					throw new Error(`Erreur API HTTP ${response.status}${detail ? ` : ${detail}` : ". Vérifie la configuration du serveur."}`);
+				}
+
+				const generatedText = typeof payload.response === "string" ? payload.response.trim() : "";
+				if (!generatedText) throw new Error("Gemini n’a renvoyé aucune ressource. Réessaie.");
+
+				renderResourceResponse(generatedText);
+				resourcesResult.hidden = false;
+				resourcesStatus.textContent = "Réponse prête. Les liens s’ouvrent dans un nouvel onglet.";
+			} catch (error) {
+				resourcesStatus.textContent = error instanceof TypeError
+					? "Impossible de joindre l’API locale. Démarre server.py avec la commande du README et ouvre http://127.0.0.1:8000."
+					: error.message || "La recherche de ressources a échoué. Réessaie.";
+			} finally {
+				stopAiProgress();
+				resourcesSubmit.disabled = false;
+				resourcesSubmit.textContent = resourcesSubmitLabel;
+			}
+		});
 
 		chapterForm.addEventListener("submit", (event) => {
 			event.preventDefault();
