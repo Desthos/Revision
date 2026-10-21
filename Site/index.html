@@ -286,7 +286,17 @@
 		.ai-saved-resource + .ai-saved-resource { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 		.ai-saved-resource-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 		.ai-saved-resource-header h3 { margin: 0; font-size: 18px; line-height: 1.35; }
+		.ai-saved-resource-tools { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 		.ai-saved-resource-header time { flex: 0 0 auto; color: var(--muted); font-size: 13px; }
+		.ai-resource-actions, .ai-resource-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+		.ai-resource-action { min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font: inherit; font-size: 13px; }
+		.ai-resource-action:hover { border-color: #61577e; color: var(--text); }
+		.ai-resource-action-delete:hover { border-color: #9f596a; color: #ffc3d2; background: rgb(244 166 189 / 8%); }
+		.ai-resource-edit-form { display: grid; gap: 10px; margin: 0 0 16px; padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: rgb(255 255 255 / 2%); }
+		.ai-resource-edit-form label { color: #ded9e9; font-size: 14px; }
+		.ai-resource-instructions { width: 100%; min-height: 88px; padding: 11px 13px; resize: vertical; border: 1px solid #514c60; border-radius: 8px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 15px; line-height: 1.5; }
+		.ai-resource-instructions:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		.ai-resource-edit-actions .primary-button { min-height: 40px; min-width: 150px; font-size: 14px; }
 		.ai-saved-resource-content { line-height: 1.7; }
 		.ai-result a { color: var(--sky); text-underline-offset: 3px; }
 		.ai-result h1, .ai-result h2, .ai-result h3, .ai-result h4, .ai-result h5, .ai-result h6 { margin: 18px 0 8px; line-height: 1.3; }
@@ -300,8 +310,12 @@
 		.ai-result code { padding: 2px 5px; border-radius: 4px; background: rgb(255 255 255 / 7%); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
 		.ai-result pre { margin: 12px 0; padding: 14px; border-radius: 7px; background: rgb(0 0 0 / 22%); overflow-x: auto; }
 		.ai-result pre code { padding: 0; background: none; }
-		.ai-math { font-family: Georgia, "Times New Roman", serif; font-style: italic; }
-		.ai-math-display { margin: 12px 0; padding: 10px 14px; border-left: 3px solid var(--violet); background: rgb(255 255 255 / 3%); font-family: Georgia, "Times New Roman", serif; font-size: 1.08em; text-align: center; overflow-x: auto; }
+		.ai-math, .ai-math-display { font-family: Georgia, "Times New Roman", serif; font-style: italic; }
+		.ai-math-display { margin: 12px 0; padding: 10px 14px; border-left: 3px solid var(--violet); background: rgb(255 255 255 / 3%); font-size: 1.08em; text-align: center; overflow-x: auto; }
+		.ai-fraction { display: inline-flex; flex-direction: column; align-items: stretch; margin: 0 .12em; vertical-align: middle; text-align: center; line-height: 1.05; font-size: .94em; }
+		.ai-fraction-numerator { padding: 0 .18em .08em; border-bottom: 1px solid currentColor; }
+		.ai-fraction-denominator { padding: .08em .18em 0; }
+		.ai-math sup, .ai-math sub, .ai-math-display sup, .ai-math-display sub { font-size: .75em; line-height: 0; }
 		.ai-result[hidden] { display: none; }
 
 		.course-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
@@ -589,7 +603,10 @@
 			.ai-form { align-items: stretch; flex-direction: column; }
 			.ai-run { width: 100%; }
 			.ai-result { padding: 16px; }
-			.ai-saved-resource-header { align-items: flex-start; flex-direction: column; gap: 2px; }
+			.ai-saved-resource-header { align-items: flex-start; flex-direction: column; gap: 8px; }
+			.ai-saved-resource-tools { align-items: flex-start; justify-content: flex-start; }
+			.ai-resource-edit-actions { flex-direction: column; }
+			.ai-resource-edit-actions button { width: 100%; }
 			.chapter-dialog.course-dialog { width: calc(100vw - 16px); max-width: calc(100vw - 16px); height: 96vh; max-height: 96vh; }
 			.course-dialog .chapter-dialog-content { padding: 16px; }
 			.course-editor { padding: 16px; font-size: 17px; }
@@ -835,6 +852,7 @@
 		const resourcesStatus = document.querySelector("#resources-status");
 		const resourcesResult = document.querySelector("#resources-result");
 		const resourcesSubmitLabel = resourcesSubmit.textContent;
+		let resourcesRequestInProgress = false;
 		const chapterTabList = document.querySelector('[role="tablist"]');
 		const courseList = document.querySelector("#course-items");
 		const courseEmpty = document.querySelector("#course-empty");
@@ -986,8 +1004,10 @@
 			const namedEntities = { nbsp: " ", amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
 			text = text.replace(/&(nbsp|amp|lt|gt|quot|apos);/gi, (entity, name) => namedEntities[name.toLowerCase()] ?? entity);
 			text = text
+				.replace(/\\\(([\s\S]*?)\\\)/g, (_, formula) => `$${formula}$`)
+				.replace(/\\\[([\s\S]*?)\\\]/g, (_, formula) => `$$\n${formula}\n$$`)
 				.replace(/\\[ \t]*(?=\n)/g, "")
-				.replace(/\\([\\`*_{}\[\]()#+.!|>~\-])/g, "$1")
+				.replace(/\\([\\`*_\[\]()#+.!|>~\-])/g, "$1")
 				.replace(/[ \t]+\n/g, "\n")
 				.trim()
 				.replace(/^```(?:markdown|md)?\s*\n([\s\S]*?)\n```$/i, "$1");
@@ -1004,20 +1024,148 @@
 			return lines.join("\n").trim();
 		}
 
-		function readableMath(formula) {
-			const superscripts = { "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "+": "⁺", "-": "⁻" };
-			const subscripts = { "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉", "+": "₊", "-": "₋" };
-			return formula
-				.replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, "($1)/($2)")
-				.replace(/\\sqrt\{([^{}]+)\}/g, "√($1)")
-				.replace(/\\mathbb\{R\}/g, "ℝ")
-				.replace(/\\Delta\b/g, "Δ")
-				.replace(/\\(neq|leq|geq|times|cdot|pm|infty)\b/g, (_, command) => ({ neq: "≠", leq: "≤", geq: "≥", times: "×", cdot: "·", pm: "±", infty: "∞" })[command])
-				.replace(/\\(alpha|beta|pi|theta)\b/g, (_, command) => ({ alpha: "α", beta: "β", pi: "π", theta: "θ" })[command])
-				.replace(/\\(?:left|right)\b/g, "")
-				.replace(/\^\{?([0-9+-]+)\}?/g, (_, value) => [...value].map((character) => superscripts[character] || character).join(""))
-				.replace(/_\{?([0-9+-]+)\}?/g, (_, value) => [...value].map((character) => subscripts[character] || character).join(""))
-				.replace(/[{}]/g, "");
+		function readMathGroup(formula, index) {
+			while (/\s/.test(formula[index] || "")) index += 1;
+			if (formula[index] !== "{") return null;
+			let depth = 0;
+			for (let cursor = index; cursor < formula.length; cursor += 1) {
+				if (formula[cursor] === "{") depth += 1;
+				if (formula[cursor] === "}") {
+					depth -= 1;
+					if (depth === 0) return { value: formula.slice(index + 1, cursor), end: cursor + 1 };
+				}
+			}
+			return { value: formula.slice(index + 1), end: formula.length };
+		}
+
+		function readMathAtom(formula, index) {
+			while (/\s/.test(formula[index] || "")) index += 1;
+			const group = readMathGroup(formula, index);
+			if (group) return group;
+			if (index >= formula.length) return null;
+			if (formula[index] === "\\") {
+				const command = formula.slice(index).match(/^\\([a-z]+|.)/i);
+				return command ? { value: command[0], end: index + command[0].length } : { value: "\\", end: index + 1 };
+			}
+			return { value: formula[index], end: index + 1 };
+		}
+
+		function renderMathFormula(formula, target, depth = 0) {
+			if (depth > 12) {
+				target.append(document.createTextNode(formula));
+				return;
+			}
+			const symbols = {
+				alpha: "α", beta: "β", gamma: "γ", delta: "δ", Delta: "Δ", theta: "θ", Theta: "Θ", lambda: "λ", mu: "μ", pi: "π", sigma: "σ", omega: "ω",
+				neq: "≠", ne: "≠", leq: "≤", le: "≤", geq: "≥", ge: "≥", approx: "≈", equiv: "≡", times: "×", cdot: "·", div: "÷", pm: "±", infty: "∞",
+				to: "→", rightarrow: "→", leftarrow: "←", iff: "⇔", implies: "⇒", in: "∈", notin: "∉", subset: "⊂", cup: "∪", cap: "∩",
+				forall: "∀", exists: "∃", emptyset: "∅", land: "∧", lor: "∨", perp: "⊥", parallel: "∥", Re: "ℜ", Im: "ℑ"
+			};
+			const sets = { R: "ℝ", Z: "ℤ", N: "ℕ", Q: "ℚ", C: "ℂ" };
+			const appendGroup = (container, group, childDepth = depth + 1) => renderMathFormula(group.value, container, childDepth);
+			const appendArgument = (container, argument) => renderMathFormula(argument.value, container, depth + 1);
+			let index = 0;
+			while (index < formula.length) {
+				const character = formula[index];
+				if (character === "\\") {
+					const command = formula.slice(index).match(/^\\([a-z]+|.)/i);
+					if (!command) {
+						target.append(document.createTextNode(character));
+						index += 1;
+						continue;
+					}
+					const name = command[1];
+					index += command[0].length;
+					if (name === "frac" || name === "dfrac" || name === "tfrac") {
+						const numerator = readMathAtom(formula, index);
+						const denominator = numerator && readMathAtom(formula, numerator.end);
+						if (numerator && denominator) {
+							const fraction = document.createElement("span");
+							fraction.className = "ai-fraction";
+							const top = document.createElement("span");
+							top.className = "ai-fraction-numerator";
+							appendArgument(top, numerator);
+							const bottom = document.createElement("span");
+							bottom.className = "ai-fraction-denominator";
+							appendArgument(bottom, denominator);
+							fraction.append(top, bottom);
+							target.append(fraction);
+							index = denominator.end;
+						} else {
+							target.append(document.createTextNode(command[0]));
+						}
+						continue;
+					}
+					if (name === "sqrt") {
+						const rootIndex = formula.slice(index).match(/^\s*\[([^\]]+)\]/);
+						if (rootIndex) index += rootIndex[0].length;
+						const radicand = readMathAtom(formula, index);
+						if (radicand) {
+							const root = document.createElement("span");
+							root.className = "ai-math-root";
+							if (rootIndex) {
+								const rootOrder = document.createElement("sup");
+								rootOrder.textContent = rootIndex[1];
+								root.append(rootOrder);
+							}
+							root.append(document.createTextNode("√("));
+							appendArgument(root, radicand);
+							root.append(document.createTextNode(")"));
+							target.append(root);
+							index = radicand.end;
+						} else target.append(document.createTextNode("√"));
+						continue;
+					}
+					if (name === "mathbb") {
+						const set = readMathAtom(formula, index);
+						if (set) {
+							const renderedSet = sets[set.value] || set.value;
+							target.append(document.createTextNode(renderedSet));
+							index = set.end;
+						} else target.append(document.createTextNode("ℝ"));
+						continue;
+					}
+					if (["text", "mathrm", "operatorname"].includes(name)) {
+						const text = readMathAtom(formula, index);
+						if (text) {
+							const upright = document.createElement("span");
+							upright.style.fontStyle = "normal";
+							upright.textContent = text.value;
+							target.append(upright);
+							index = text.end;
+						}
+						continue;
+					}
+					if (["left", "right", "displaystyle", "textstyle"].includes(name)) continue;
+					if ([",", ";", "!", " "].includes(name)) {
+						if (name !== "!") target.append(document.createTextNode(" "));
+						continue;
+					}
+					if (symbols[name]) target.append(document.createTextNode(symbols[name]));
+					else target.append(document.createTextNode(`\\${name}`));
+					continue;
+				}
+				if (character === "^" || character === "_") {
+					const argument = readMathAtom(formula, index + 1);
+					if (argument) {
+						const script = document.createElement(character === "^" ? "sup" : "sub");
+						appendArgument(script, argument);
+						target.append(script);
+						index = argument.end;
+					} else index += 1;
+					continue;
+				}
+				if (character === "{") {
+					const group = readMathGroup(formula, index);
+					if (group) {
+						appendGroup(target, group);
+						index = group.end;
+						continue;
+					}
+				}
+				if (character !== "}") target.append(document.createTextNode(character));
+				index += 1;
+			}
 		}
 
 		function renderInlineMarkdown(parent, text, depth = 0) {
@@ -1025,12 +1173,12 @@
 				parent.append(document.createTextNode(text));
 				return;
 			}
-			const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|__(.+?)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`\n]+)`|\$([^$\n]+)\$|(https?:\/\/[^\s<>"'`\])]+)/gi;
+			const pattern = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)|\*\*(.+?)\*\*|__(.+?)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`\n]+)`|\$([^$\n]+)\$|<u>([\s\S]*?)<\/u>|<span\s+style=["']\s*color\s*:\s*(#[\da-f]{6})\s*;?\s*["']\s*>([\s\S]*?)<\/span>|(https?:\/\/[^\s<>"'`\])]+)/gi;
 			let lastIndex = 0;
 			for (const match of text.matchAll(pattern)) {
 				parent.append(document.createTextNode(text.slice(lastIndex, match.index)));
-				if (match[1] !== undefined || match[9] !== undefined) {
-					const rawUrl = match[2] || match[9];
+				if (match[1] !== undefined || match[12] !== undefined) {
+					const rawUrl = match[2] || match[12];
 					const punctuation = match[2] ? "" : (rawUrl.match(/[.,;:!?]+$/)?.[0] || "");
 					const href = punctuation ? rawUrl.slice(0, -punctuation.length) : rawUrl;
 					try {
@@ -1064,8 +1212,17 @@
 				} else if (match[8] !== undefined) {
 					const math = document.createElement("span");
 					math.className = "ai-math";
-					math.textContent = readableMath(match[8]);
+					renderMathFormula(match[8], math);
 					parent.append(math);
+				} else if (match[9] !== undefined) {
+					const underline = document.createElement("u");
+					renderInlineMarkdown(underline, match[9], depth + 1);
+					parent.append(underline);
+				} else if (match[10] !== undefined && match[11] !== undefined) {
+					const colored = document.createElement("span");
+					colored.style.color = match[10];
+					renderInlineMarkdown(colored, match[11], depth + 1);
+					parent.append(colored);
 				}
 				lastIndex = match.index + match[0].length;
 			}
@@ -1108,7 +1265,7 @@
 			const renderMathBlock = (formula) => {
 				const math = document.createElement("div");
 				math.className = "ai-math-display";
-				math.textContent = readableMath(formula.trim());
+				renderMathFormula(formula.trim(), math);
 				fragment.append(math);
 			};
 
@@ -1191,27 +1348,125 @@
 			target.replaceChildren(fragment);
 		}
 
+		async function requestGeminiResource(payload) {
+			const response = await fetch(resourcesApiUrl, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+			if (response.status === 404 || response.status === 405) {
+				throw new Error("L’API Gemini n’est pas disponible sur ce serveur. Démarre l’application avec la commande uvicorn du README.");
+			}
+			const contentType = response.headers.get("content-type") || "";
+			if (!/json/i.test(contentType)) {
+				if (response.status === 403) {
+					throw new Error("Le serveur qui affiche cette page refuse l’API (HTTP 403). Ouvre le site avec http://127.0.0.1:8000 pour que la demande passe par FastAPI.");
+				}
+				throw new Error(`Le serveur n’a pas renvoyé une réponse API JSON (HTTP ${response.status}). Démarre l’application avec la commande uvicorn du README.`);
+			}
+			const result = await response.json().catch(() => null);
+			if (!result || typeof result !== "object") {
+				throw new Error(`La réponse du serveur est invalide (HTTP ${response.status}).`);
+			}
+			if (!response.ok) {
+				const detail = Array.isArray(result.detail)
+					? result.detail.map((issue) => {
+						const field = Array.isArray(issue.loc) ? issue.loc.slice(1).join(".") : "";
+						return [field, issue.msg].filter(Boolean).join(" : ");
+					}).join("; ")
+					: typeof result.detail === "string" ? result.detail : "";
+				throw new Error(`Erreur API HTTP ${response.status}${detail ? ` : ${detail}` : ". Vérifie la configuration du serveur."}`);
+			}
+			const generatedText = typeof result.response === "string" ? result.response.trim() : "";
+			if (!generatedText) throw new Error("Gemini n’a renvoyé aucune ressource. Réessaie.");
+			return generatedText;
+		}
+
+		function saveChapterResources(chapter, nextResources, successMessage) {
+			const previousResources = chapter.resources;
+			chapter.resources = nextResources;
+			try {
+				localStorage.setItem(chaptersStorageKey, JSON.stringify(chaptersBySubject));
+			} catch {
+				chapter.resources = previousResources;
+				renderChapterResources(chapter);
+				resourcesStatus.textContent = "Le stockage local est plein. Libère de l’espace ou exporte une sauvegarde JSON avant de modifier cette ressource.";
+				return false;
+			}
+			renderChapterResources(chapter);
+			resourcesStatus.textContent = successMessage;
+			return true;
+		}
+
 		function createSavedResourceElement(resource) {
 			const article = document.createElement("article");
 			article.className = "ai-saved-resource";
+			article.dataset.resourceId = resource.id;
 
 			const header = document.createElement("div");
 			header.className = "ai-saved-resource-header";
 			const title = document.createElement("h3");
 			title.textContent = resource.query;
 			header.append(title);
+			const tools = document.createElement("div");
+			tools.className = "ai-saved-resource-tools";
 			const timestamp = Date.parse(resource.createdAt);
 			if (Number.isFinite(timestamp)) {
 				const date = document.createElement("time");
 				date.dateTime = new Date(timestamp).toISOString();
 				date.textContent = new Date(timestamp).toLocaleString("fr-FR", { dateStyle: "medium", timeStyle: "short" });
-				header.append(date);
+				tools.append(date);
 			}
+			const actions = document.createElement("div");
+			actions.className = "ai-resource-actions";
+			const editButton = document.createElement("button");
+			editButton.type = "button";
+			editButton.className = "ai-resource-action";
+			editButton.dataset.resourceAction = "edit";
+			editButton.setAttribute("aria-expanded", "false");
+			editButton.textContent = "Modifier avec Gemini";
+			const deleteButton = document.createElement("button");
+			deleteButton.type = "button";
+			deleteButton.className = "ai-resource-action ai-resource-action-delete";
+			deleteButton.dataset.resourceAction = "delete";
+			deleteButton.textContent = "Supprimer";
+			actions.append(editButton, deleteButton);
+			tools.append(actions);
+			header.append(tools);
+
+			const editForm = document.createElement("form");
+			editForm.className = "ai-resource-edit-form";
+			editForm.dataset.resourceEditForm = "true";
+			editForm.hidden = true;
+			const instructionsId = `resource-instructions-${resource.id}`;
+			const instructionsLabel = document.createElement("label");
+			instructionsLabel.htmlFor = instructionsId;
+			instructionsLabel.textContent = "Qu’aimerais-tu préciser ou changer dans cette réponse ?";
+			const instructions = document.createElement("textarea");
+			instructions.id = instructionsId;
+			instructions.className = "ai-resource-instructions";
+			instructions.name = "instructions";
+			instructions.maxLength = 2000;
+			instructions.required = true;
+			instructions.placeholder = "Ex. ajoute deux questions de difficulté progressive et explique les réponses avec le cours…";
+			const editActions = document.createElement("div");
+			editActions.className = "ai-resource-edit-actions";
+			const saveButton = document.createElement("button");
+			saveButton.type = "submit";
+			saveButton.className = "primary-button";
+			saveButton.textContent = "Demander à Gemini";
+			const cancelButton = document.createElement("button");
+			cancelButton.type = "button";
+			cancelButton.className = "ai-resource-action";
+			cancelButton.dataset.resourceAction = "cancel-edit";
+			cancelButton.textContent = "Annuler";
+			editActions.append(saveButton, cancelButton);
+			editForm.append(instructionsLabel, instructions, editActions);
 
 			const content = document.createElement("div");
 			content.className = "ai-saved-resource-content";
 			renderResourceResponse(resource.response, content);
-			article.append(header, content);
+			article.append(header, editForm, content);
 			return article;
 		}
 
@@ -1219,6 +1474,65 @@
 			const savedResources = Array.isArray(chapter.resources) ? chapter.resources : [];
 			resourcesResult.replaceChildren(...savedResources.map(createSavedResourceElement));
 			resourcesResult.hidden = savedResources.length === 0;
+		}
+
+		async function refineSavedResource(form) {
+			if (resourcesRequestInProgress) return;
+			const chapter = getActiveCourseChapter();
+			const article = form.closest(".ai-saved-resource");
+			const resource = (Array.isArray(chapter?.resources) ? chapter.resources : [])
+				.find((item) => item.id === article?.dataset.resourceId);
+			const instruction = form.elements.instructions.value.trim();
+			if (!chapter || !resource) {
+				resourcesStatus.textContent = "Ce chapitre ou cette ressource n’est plus disponible.";
+				return;
+			}
+			if (instruction.length < 2) {
+				resourcesStatus.textContent = "Ajoute une instruction pour préciser la réponse.";
+				form.elements.instructions.focus();
+				return;
+			}
+			let courseData;
+			try {
+				courseData = getChapterCourseForGemini(chapter);
+			} catch (error) {
+				resourcesStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis à Gemini.";
+				return;
+			}
+			if (courseData.course.length > 100000) {
+				resourcesStatus.textContent = "Le cours est trop long pour être transmis en une seule demande.";
+				return;
+			}
+
+			resourcesRequestInProgress = true;
+			resourcesSubmit.disabled = true;
+			resourcesSubmit.textContent = "Gemini précise…";
+			resourcesResult.querySelectorAll("button, textarea").forEach((control) => { control.disabled = true; });
+			const stopAiProgress = startAiProgress(resourcesStatus, "Gemini révise la réponse à partir du cours");
+			try {
+				const generatedText = await requestGeminiResource({
+					chapter_title: chapter.title,
+					course: courseData.course,
+					files: courseData.files,
+					query: resource.query,
+					previous_response: resource.response,
+					refinement_instruction: instruction
+				});
+				const nextResources = chapter.resources.map((item) => item.id === resource.id
+					? { ...item, response: generatedText }
+					: item);
+				saveChapterResources(chapter, nextResources, "Réponse précisée et enregistrée avec ce chapitre.");
+			} catch (error) {
+				resourcesStatus.textContent = error instanceof TypeError
+					? "Impossible de joindre l’API locale. Démarre server.py avec la commande du README et ouvre http://127.0.0.1:8000."
+					: error.message || "La modification de la ressource a échoué. Réessaie.";
+			} finally {
+				stopAiProgress();
+				resourcesRequestInProgress = false;
+				resourcesSubmit.disabled = false;
+				resourcesSubmit.textContent = resourcesSubmitLabel;
+				resourcesResult.querySelectorAll("button, textarea").forEach((control) => { control.disabled = false; });
+			}
 		}
 
 		function startAiProgress(statusElement, message) {
@@ -2075,6 +2389,7 @@
 
 		resourcesForm.addEventListener("submit", async (event) => {
 			event.preventDefault();
+			if (resourcesRequestInProgress) return;
 			const chapter = getActiveCourseChapter();
 			const query = resourcesQuery.value.trim();
 			if (!chapter) {
@@ -2098,42 +2413,13 @@
 				return;
 			}
 
+			resourcesRequestInProgress = true;
 			resourcesSubmit.disabled = true;
 			resourcesSubmit.textContent = "Gemini répond…";
 			const stopAiProgress = startAiProgress(resourcesStatus, "Gemini prépare une réponse à partir du cours");
 
 			try {
-				const response = await fetch(resourcesApiUrl, {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ chapter_title: chapter.title, course, files, query })
-				});
-				if (response.status === 404 || response.status === 405) {
-					throw new Error("L’API Gemini n’est pas disponible sur ce serveur. Démarre l’application avec la commande uvicorn du README.");
-				}
-				const contentType = response.headers.get("content-type") || "";
-				if (!/json/i.test(contentType)) {
-					if (response.status === 403) {
-						throw new Error("Le serveur qui affiche cette page refuse l’API (HTTP 403). Ouvre le site avec http://127.0.0.1:8000 pour que la demande passe par FastAPI.");
-					}
-					throw new Error(`Le serveur n’a pas renvoyé une réponse API JSON (HTTP ${response.status}). Démarre l’application avec la commande uvicorn du README.`);
-				}
-				const payload = await response.json().catch(() => null);
-				if (!payload || typeof payload !== "object") {
-					throw new Error(`La réponse du serveur est invalide (HTTP ${response.status}).`);
-				}
-				if (!response.ok) {
-					const detail = Array.isArray(payload.detail)
-						? payload.detail.map((issue) => {
-							const field = Array.isArray(issue.loc) ? issue.loc.slice(1).join(".") : "";
-							return [field, issue.msg].filter(Boolean).join(" : ");
-						}).join("; ")
-						: typeof payload.detail === "string" ? payload.detail : "";
-					throw new Error(`Erreur API HTTP ${response.status}${detail ? ` : ${detail}` : ". Vérifie la configuration du serveur."}`);
-				}
-
-				const generatedText = typeof payload.response === "string" ? payload.response.trim() : "";
-				if (!generatedText) throw new Error("Gemini n’a renvoyé aucune ressource. Réessaie.");
+				const generatedText = await requestGeminiResource({ chapter_title: chapter.title, course, files, query });
 
 				const resource = {
 					id: crypto.randomUUID(),
@@ -2159,9 +2445,52 @@
 					: error.message || "La recherche de ressources a échoué. Réessaie.";
 			} finally {
 				stopAiProgress();
+				resourcesRequestInProgress = false;
 				resourcesSubmit.disabled = false;
 				resourcesSubmit.textContent = resourcesSubmitLabel;
 			}
+		});
+
+		resourcesResult.addEventListener("click", (event) => {
+			const button = event.target.closest("[data-resource-action]");
+			if (!button || resourcesRequestInProgress) return;
+			const article = button.closest(".ai-saved-resource");
+			const chapter = getActiveCourseChapter();
+			const resourceId = article?.dataset.resourceId;
+			if (!chapter || !resourceId) return;
+
+			if (button.dataset.resourceAction === "edit") {
+				const form = article.querySelector(".ai-resource-edit-form");
+				const shouldOpen = form.hidden;
+				resourcesResult.querySelectorAll(".ai-resource-edit-form").forEach((otherForm) => {
+					otherForm.hidden = true;
+					otherForm.closest(".ai-saved-resource").querySelector('[data-resource-action="edit"]')?.setAttribute("aria-expanded", "false");
+				});
+				form.hidden = !shouldOpen;
+				button.setAttribute("aria-expanded", String(!form.hidden));
+				if (!form.hidden) form.elements.instructions.focus();
+				return;
+			}
+			if (button.dataset.resourceAction === "cancel-edit") {
+				const form = article.querySelector(".ai-resource-edit-form");
+				form.reset();
+				form.hidden = true;
+				article.querySelector('[data-resource-action="edit"]')?.setAttribute("aria-expanded", "false");
+				return;
+			}
+			if (button.dataset.resourceAction === "delete") {
+				const resource = (Array.isArray(chapter.resources) ? chapter.resources : []).find((item) => item.id === resourceId);
+				if (!resource || !window.confirm(`Supprimer la ressource « ${resource.query} » ?`)) return;
+				const nextResources = chapter.resources.filter((item) => item.id !== resourceId);
+				saveChapterResources(chapter, nextResources, "Ressource supprimée du chapitre.");
+			}
+		});
+
+		resourcesResult.addEventListener("submit", (event) => {
+			const form = event.target.closest("form[data-resource-edit-form]");
+			if (!form) return;
+			event.preventDefault();
+			refineSavedResource(form);
 		});
 
 		chapterForm.addEventListener("submit", (event) => {

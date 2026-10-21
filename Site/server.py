@@ -33,7 +33,10 @@ GENERATION_CONFIG = {
     # Lower reasoning effort reduces latency for this app's concise study requests.
     "thinking_level": "low",
 }
-NO_EMOJI_INSTRUCTION = "N’utilise jamais d’emoji ni d’émoticône dans ta réponse, quelle que soit la demande."
+BASE_GEMINI_INSTRUCTIONS = """Le site aide les élèves à réviser à partir de leurs propres demandes et de leur cours.
+Suis précisément la consigne de l’élève. Ne produis pas spontanément de rappel séparé des formules ni de liste de notions « à retenir » : l’élève choisit lui-même ce qu’il veut revoir. Tu peux utiliser les formules nécessaires à l’activité explicitement demandée.
+Formate clairement la réponse en Markdown. Utilise avec parcimonie le gras, le soulignement avec <u>...</u> et la couleur avec <span style="color:#RRGGBB">...</span> (hexadécimal à 6 chiffres), seulement pour faciliter la lecture. N’utilise aucun autre code HTML ni style.
+N’utilise jamais d’emoji ni d’émoticône."""
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("revision-site")
@@ -58,6 +61,8 @@ class ResourcesRequest(BaseModel):
     course: str = Field(default="", max_length=100_000)
     query: str = Field(min_length=2, max_length=2000)
     files: list[CourseFile] = Field(default_factory=list, max_length=12)
+    previous_response: str | None = Field(default=None, max_length=1_000_000)
+    refinement_instruction: str | None = Field(default=None, min_length=2, max_length=2000)
 
 
 class RevisionRequest(BaseModel):
@@ -591,6 +596,9 @@ def health() -> dict[str, bool]:
 
 @app.post("/api/resources")
 def create_resources(request: ResourcesRequest) -> dict[str, str]:
+    if request.refinement_instruction and not request.previous_response:
+        raise HTTPException(status_code=400, detail="La réponse à préciser est manquante.")
+
     attached_text, file_inputs = _course_file_inputs(request.files)
     course_sections = [part for part in (request.course.strip(), attached_text) if part]
     course = "\n\n".join(course_sections)
@@ -598,13 +606,23 @@ def create_resources(request: ResourcesRequest) -> dict[str, str]:
         raise HTTPException(status_code=413, detail="Le cours complet dépasse 100 000 caractères. Réduis le texte ou le nombre de fichiers.")
     if not course and not file_inputs:
         course = "Aucun texte ni fichier de cours n’a été ajouté pour ce chapitre."
-    use_search = request_needs_search(request.query)
+    full_request = "\n".join(part for part in (request.query, request.refinement_instruction or "") if part)
+    use_search = request_needs_search(full_request)
     search_instruction = (
         "Si la demande nécessite des informations externes récentes ou des liens, utilise Google Search pour vérifier les éléments utiles et cite les sources avec leurs liens."
         if use_search
         else "N’effectue pas de recherche sur le Web : base ta réponse sur le cours fourni et la demande."
     )
     attached_names = ", ".join(course_file.name for course_file in request.files) or "aucun"
+    refinement_context = ""
+    if request.refinement_instruction and request.previous_response:
+        refinement_context = f"""
+Réponse précédente de Gemini à réviser :
+{request.previous_response}
+
+Instructions complémentaires de l’élève : {request.refinement_instruction}
+Réécris la réponse complète en appliquant ces instructions. Garde les éléments utiles et exacts de la réponse précédente, corrige ou complète ce qui est nécessaire avec le cours, puis fournis uniquement la version révisée.
+"""
     prompt = f"""Tu aides un élève à réviser et à trouver des ressources utiles.
 Chapitre : {request.chapter_title}
 Cours complet saisi pour ce chapitre :
@@ -612,12 +630,14 @@ Cours complet saisi pour ce chapitre :
 Fichiers joints du cours : {attached_names}
 
 Demande de l’élève : {request.query}
+{refinement_context}
 
 Réponds directement à la demande en français, sous forme de texte clair et bien formaté en Markdown.
 Utilise le cours complet et les fichiers joints comme source principale. N’invente pas de faits qui contredisent le cours; si une information nécessaire manque, signale-le brièvement.
 Sois le plus synthétique possible. Commence directement par le contenu, sans phrase d’introduction, et ne termine pas par une phrase de conclusion.
+Pour les formules, utilise des délimiteurs LaTeX Markdown : $...$ dans une phrase et $$...$$ sur une ligne séparée pour une formule centrée.
 {search_instruction}
-{NO_EMOJI_INSTRUCTION}
+{BASE_GEMINI_INSTRUCTIONS}
 """
     return {
         "response": generate_with_gemini(
@@ -639,10 +659,11 @@ Crée une séance de révision en français à partir du cours ci-dessous unique
 - puis un corrigé séparé, clairement titré;
 - n’ajoute pas de notions absentes du cours et signale toute ambiguïté.
 Sois synthétique, commence directement par les questions sans phrase d’introduction et ne termine pas par une conclusion.
-{NO_EMOJI_INSTRUCTION}
 
 Cours :
-{request.course}"""
+{request.course}
+
+{BASE_GEMINI_INSTRUCTIONS}"""
     return {"response": generate_with_gemini(prompt, use_search=False, fast_mode=True)}
 
 
