@@ -4,12 +4,14 @@ import io
 import logging
 import os
 import re
+import time
 import unicodedata
 import zipfile
 from xml.etree import ElementTree
 from pathlib import Path
 from typing import Any
 
+import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,9 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 MODEL = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").removeprefix("models/")
+FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-3.6-flash").removeprefix("models/").strip()
+FAST_MODEL = os.getenv("GEMINI_FAST_MODEL", "gemini-3.5-flash-lite").removeprefix("models/").strip()
+FAST_REQUEST_TIMEOUT_MS = 25_000
 GENERATION_CONFIG = {
     "max_output_tokens": 65536,
-    "thinking_level": "medium",
+    # Lower reasoning effort reduces latency for this app's concise study requests.
+    "thinking_level": "low",
 }
 NO_EMOJI_INSTRUCTION = "N’utilise jamais d’emoji ni d’émoticône dans ta réponse, quelle que soit la demande."
 
@@ -59,7 +65,7 @@ class RevisionRequest(BaseModel):
     course: str = Field(min_length=1, max_length=30000)
 
 
-def get_gemini_client() -> genai.Client:
+def get_gemini_client(*, fast_mode: bool = False) -> genai.Client:
     api_key = get_gemini_api_key()
     if not api_key:
         raise HTTPException(
@@ -69,11 +75,12 @@ def get_gemini_client() -> genai.Client:
     return genai.Client(
         api_key=api_key,
         http_options=types.HttpOptions(
+            timeout=FAST_REQUEST_TIMEOUT_MS if fast_mode else None,
             retry_options=types.HttpRetryOptions(
-                # Retry only temporary model overloads, with two short retries.
-                attempts=2,
+                # Fast requests switch models immediately instead of waiting through retries.
+                attempts=1 if fast_mode else 3,
                 initial_delay=1.0,
-                max_delay=2.0,
+                max_delay=4.0,
                 exp_base=2.0,
                 jitter=0.2,
                 http_status_codes=[503],
@@ -186,15 +193,17 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
 def _gemini_error_details(
     code: int,
     error: Exception | None = None,
+    *,
+    model: str = MODEL,
 ) -> tuple[int, str]:
     if code in (401, 403):
         return 502, "La clé Gemini est invalide ou n’a pas accès à ce modèle. Vérifie GEMINI_API_KEY."
     if code == 404:
-        return 502, f"Le modèle Gemini « {MODEL} » ou l’API demandée est introuvable. Vérifie GEMINI_MODEL."
+        return 502, f"Le modèle Gemini « {model} » ou l’API demandée est introuvable. Vérifie le nom du modèle configuré."
     if code == 429:
         return 429, _rate_limit_error_detail(error)
     if code == 503:
-        return 503, "Gemini reste temporairement saturé (HTTP 503, forte demande), même après deux nouvelles tentatives automatiques. Ce n’est pas nécessairement une limite de quota : réessaie dans quelques instants."
+        return 503, "Gemini est temporairement indisponible ou surchargé (HTTP 503). Ce code ne signifie généralement pas que ton quota est atteint; les limites de quota ou de débit sont signalées en HTTP 429. Réessaie dans quelques instants."
     if code == 400:
         return 502, "Gemini a refusé la demande (HTTP 400). Vérifie le modèle et les paramètres de l’API."
     return 502, f"Gemini n’a pas pu traiter la demande (HTTP {code}). Réessaie dans quelques instants."
@@ -237,26 +246,80 @@ def _extract_http_status(error: Exception) -> int | None:
     return None
 
 
+def _is_timeout_error(error: Exception) -> bool:
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop()
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        if isinstance(current, httpx.TimeoutException):
+            return True
+        for nested in (getattr(current, "__cause__", None), getattr(current, "__context__", None)):
+            if isinstance(nested, Exception):
+                pending.append(nested)
+    return False
+
+
 def generate_with_gemini(
     prompt: str,
     *,
     use_search: bool,
     file_inputs: list[dict[str, str]] | None = None,
+    fast_mode: bool = False,
 ) -> str:
+    active_model = MODEL
+    started_at = time.perf_counter()
     try:
-        client = get_gemini_client()
+        client = get_gemini_client(fast_mode=fast_mode)
         options: dict[str, Any] = {}
         if use_search:
             options["tools"] = [{"type": "google_search"}]
 
-        interaction = client.interactions.create(
-            model=MODEL,
-            input=[{"type": "text", "text": prompt}, *(file_inputs or [])],
-            generation_config=GENERATION_CONFIG,
-            **options,
-        )
+        input_items = [{"type": "text", "text": prompt}, *(file_inputs or [])]
+        models_to_try = [FAST_MODEL, FALLBACK_MODEL] if fast_mode else [MODEL, FALLBACK_MODEL]
+        models_to_try = list(dict.fromkeys(model for model in models_to_try if model))
+        if not models_to_try:
+            models_to_try = [MODEL]
+
+        for model_index, active_model in enumerate(models_to_try):
+            try:
+                interaction = client.interactions.create(
+                    model=active_model,
+                    input=input_items,
+                    generation_config=(
+                        {**GENERATION_CONFIG, "thinking_level": "minimal"}
+                        if fast_mode and active_model == FAST_MODEL
+                        else GENERATION_CONFIG
+                    ),
+                    **options,
+                )
+                if model_index > 0:
+                    logger.info("Gemini a répondu avec le modèle de secours %s", active_model)
+                break
+            except Exception as error:
+                status = _extract_http_status(error)
+                has_fallback = model_index + 1 < len(models_to_try)
+                timed_out = fast_mode and _is_timeout_error(error)
+                if (status != 503 and not timed_out) or not has_fallback:
+                    raise
+                logger.warning(
+                    "Le modèle Gemini %s a échoué (%s); nouvel essai avec %s.",
+                    active_model,
+                    f"HTTP {status}" if status else "délai dépassé",
+                    models_to_try[model_index + 1],
+                )
+
         output_text = getattr(interaction, "output_text", None)
         if isinstance(output_text, str) and output_text.strip():
+            logger.info(
+                "Réponse Gemini reçue (modèle=%s, mode_rapide=%s, durée=%.1fs, prompt=%d caractères)",
+                active_model,
+                fast_mode,
+                time.perf_counter() - started_at,
+                len(prompt),
+            )
             return output_text.strip()
 
         steps = getattr(interaction, "steps", None) or []
@@ -265,14 +328,27 @@ def generate_with_gemini(
                 continue
             output = _extract_text(getattr(step, "content", None))
             if output.strip():
+                logger.info(
+                    "Réponse Gemini reçue (modèle=%s, mode_rapide=%s, durée=%.1fs, prompt=%d caractères)",
+                    active_model,
+                    fast_mode,
+                    time.perf_counter() - started_at,
+                    len(prompt),
+                )
                 return output.strip()
         raise RuntimeError("Gemini n’a renvoyé aucun texte de réponse.")
     except HTTPException:
         raise
     except genai.errors.APIError as error:
         status = _extract_http_status(error)
-        logger.exception("Gemini a renvoyé une erreur HTTP %s", status or "inconnue")
-        status_code, detail = _gemini_error_details(status, error) if status is not None else (
+        logger.exception(
+            "Gemini a échoué (modèle=%s, mode_rapide=%s, durée=%.1fs, HTTP=%s)",
+            active_model,
+            fast_mode,
+            time.perf_counter() - started_at,
+            status or "inconnue",
+        )
+        status_code, detail = _gemini_error_details(status, error, model=active_model) if status is not None else (
             502,
             "Gemini n’a pas pu traiter la demande. Réessaie dans quelques instants.",
         )
@@ -282,8 +358,13 @@ def generate_with_gemini(
         # Interactions SDK versions expose the HTTP status as status_code,
         # code, on response.status_code, or only in the wrapped error message.
         status = _extract_http_status(error)
+        if fast_mode and _is_timeout_error(error):
+            raise HTTPException(
+                status_code=504,
+                detail="Gemini n’a pas répondu assez vite avec le modèle de secours. Réessaie dans quelques instants.",
+            ) from error
         if status is not None:
-            status_code, detail = _gemini_error_details(status, error)
+            status_code, detail = _gemini_error_details(status, error, model=active_model)
             raise HTTPException(status_code=status_code, detail=detail) from error
         raise HTTPException(
             status_code=502,
@@ -305,6 +386,15 @@ def request_needs_search(query: str) -> bool:
         r"\b(?:cherche|recherche|trouve|recommande|propose)\b", normalized
     )
     return bool(external_resource or generic_resource_search)
+
+
+def request_is_quiz(query: str) -> bool:
+    normalized = "".join(
+        character
+        for character in unicodedata.normalize("NFKD", query.casefold())
+        if not unicodedata.combining(character)
+    )
+    return bool(re.search(r"\b(?:quiz|qcm|questionnaire|interrogation|questions?)\b", normalized))
 
 
 def _xml_paragraphs(xml_bytes: bytes) -> list[str]:
@@ -516,7 +606,14 @@ Sois le plus synthétique possible. Commence directement par le contenu, sans ph
 {search_instruction}
 {NO_EMOJI_INSTRUCTION}
 """
-    return {"response": generate_with_gemini(prompt, use_search=use_search, file_inputs=file_inputs)}
+    return {
+        "response": generate_with_gemini(
+            prompt,
+            use_search=use_search,
+            file_inputs=file_inputs,
+            fast_mode=request_is_quiz(request.query),
+        )
+    }
 
 
 @app.post("/api/revision")
@@ -533,7 +630,7 @@ Sois synthétique, commence directement par les questions sans phrase d’introd
 
 Cours :
 {request.course}"""
-    return {"response": generate_with_gemini(prompt, use_search=False)}
+    return {"response": generate_with_gemini(prompt, use_search=False, fast_mode=True)}
 
 
 app.mount("/", StaticFiles(directory=BASE_DIR, html=True), name="site")
