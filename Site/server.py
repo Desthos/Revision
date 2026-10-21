@@ -77,8 +77,8 @@ def get_gemini_client(*, fast_mode: bool = False) -> genai.Client:
         http_options=types.HttpOptions(
             timeout=FAST_REQUEST_TIMEOUT_MS if fast_mode else None,
             retry_options=types.HttpRetryOptions(
-                # Fast requests switch models immediately instead of waiting through retries.
-                attempts=1 if fast_mode else 3,
+                # One API attempt per model; application-level fallback is explicit and bounded.
+                attempts=1,
                 initial_delay=1.0,
                 max_delay=4.0,
                 exp_base=2.0,
@@ -155,6 +155,12 @@ def _format_retry_delay(value: str) -> str:
 
 def _rate_limit_error_detail(error: Exception | None) -> str:
     provider_message = _extract_provider_error_message(error)
+    model_match = re.search(
+        r"[\"']?model[\"']?\s*[:=]\s*[\"']?([A-Za-z0-9][A-Za-z0-9._-]*)",
+        provider_message,
+        re.IGNORECASE,
+    )
+    model_context = f" du modèle Gemini « {model_match.group(1)} »" if model_match else " du modèle Gemini utilisé"
     limit_match = re.search(
         r"(?:limit:\s*)?([\d,]+)\s+(requests?|tokens?)\s+per\s+(day|minute|second)",
         provider_message,
@@ -173,8 +179,8 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
         tier = " sur le forfait gratuit" if "free tier" in provider_message.lower() else ""
         retry = f" Réessaie dans {retry_delay} ou après le renouvellement du quota." if retry_delay else " Réessaie après le renouvellement du quota."
         return (
-            f"Le quota journalier Gemini de ce projet est atteint : {amount} {limit_label} par jour{tier}."
-            f"{retry} Pour continuer avant, vérifie le niveau de quota ou la facturation du projet dans Google AI Studio."
+            f"Le quota journalier{model_context} de ce projet est atteint : {amount} {limit_label} par jour{tier}."
+            f"{retry} Les appels d’autres clés ou applications du même projet comptent aussi. Vérifie l’utilisation de ce modèle dans Google AI Studio."
         )
 
     if limit_match:
@@ -285,6 +291,13 @@ def generate_with_gemini(
 
         for model_index, active_model in enumerate(models_to_try):
             try:
+                logger.info(
+                    "Envoi Gemini (modèle=%s, tentative=%d/%d, mode_rapide=%s)",
+                    active_model,
+                    model_index + 1,
+                    len(models_to_try),
+                    fast_mode,
+                )
                 interaction = client.interactions.create(
                     model=active_model,
                     input=input_items,
