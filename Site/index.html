@@ -328,8 +328,9 @@
 		.course-entry-text[data-format="html"] { white-space: normal; }
 		.course-entry-text h2 { margin: 18px 0 10px; font-size: 24px; }
 		.course-entry-text h3 { margin: 16px 0 8px; font-size: 20px; }
+		.course-entry-text li::marker, .course-editor li::marker { color: var(--course-list-color, var(--violet)); }
 		.course-entry-text ul.course-list-dash { padding-left: 0; list-style: none; }
-		.course-entry-text ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--violet); }
+		.course-entry-text ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--course-list-color, var(--violet)); }
 		.course-entry-image { display: block; max-width: 100%; max-height: 680px; border-radius: 6px; object-fit: contain; object-position: left; }
 		.course-entry-caption { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 		.course-entry-remove { justify-self: end; min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font-size: 13px; }
@@ -364,10 +365,10 @@
 		.course-editor p { margin: 0 0 10px; }
 		.course-editor ul, .course-editor ol { padding-left: 28px; }
 		.course-editor ul.course-list-dash { padding-left: 0; list-style: none; }
-		.course-editor ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--violet); }
-		.course-editor ol[data-course-list-style] { padding-left: 0; list-style: none; counter-reset: course-list-counter; }
+		.course-editor ul.course-list-dash > li::before { content: "–"; display: inline-block; width: 1.4em; color: var(--course-list-color, var(--violet)); }
+		.course-editor ol[data-course-list-style] { padding-left: 0; list-style: none; counter-reset: course-list-counter var(--course-list-offset, 0); }
 		.course-editor ol[data-course-list-style] > li { counter-increment: course-list-counter; }
-		.course-editor ol[data-course-list-style] > li::before { display: inline-block; min-width: 2.5em; color: var(--violet); font-weight: 650; }
+		.course-editor ol[data-course-list-style] > li::before { display: inline-block; min-width: 2.5em; color: var(--course-list-color, var(--violet)); font-weight: 650; }
 		.course-editor ol[data-course-list-style="roman-upper"] > li::before { content: counter(course-list-counter, upper-roman) ")"; }
 		.course-editor ol[data-course-list-style="decimal"] > li::before { content: counter(course-list-counter, decimal) ")"; }
 		.course-editor ol[data-course-list-style="alpha-upper"] > li::before { content: counter(course-list-counter, upper-alpha) ")"; }
@@ -786,6 +787,7 @@
 					<div class="course-editor-toolbar" role="toolbar" aria-label="Formatage du cours">
 						<button class="course-format-button course-format-bold" type="button" data-course-command="bold" aria-label="Gras" title="Gras">B</button>
 						<button class="course-format-button course-format-italic" type="button" data-course-command="italic" aria-label="Italique" title="Italique">I</button>
+						<button class="course-format-button" type="button" data-course-command="underline" aria-label="Souligné" title="Souligné"><u>U</u></button>
 						<label class="visually-hidden" for="course-font-size">Taille de police</label>
 						<select id="course-font-size" class="course-font-size" aria-label="Taille de police">
 							<option value="14">14 px</option><option value="16">16 px</option><option value="18" selected>18 px</option><option value="20">20 px</option><option value="24">24 px</option><option value="28">28 px</option><option value="32">32 px</option><option value="36">36 px</option>
@@ -796,8 +798,8 @@
 						<button class="course-format-button course-format-list" type="button" data-course-list="decimal" aria-label="Liste numérotée" title="Liste 1), 2), 3)…">1)</button>
 						<button class="course-format-button course-format-list" type="button" data-course-list="alpha-upper" aria-label="Liste en lettres majuscules" title="Liste A), B), C)…">A)</button>
 						<button class="course-format-button course-format-list" type="button" data-course-list="alpha-lower" aria-label="Liste en lettres minuscules" title="Liste a), b), c)…">a)</button>
-						<label class="course-color-label" title="Couleur du texte">
-							<input id="course-text-color" class="course-color-input" type="color" value="#f4f1fa" aria-label="Couleur du texte">
+						<label class="course-color-label" title="Couleur du texte ou des repères de liste">
+							<input id="course-text-color" class="course-color-input" type="color" value="#f4f1fa" aria-label="Couleur du texte ou des repères de liste">
 						</label>
 					</div>
 					<div id="course-text" class="course-editor" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Texte du cours" data-placeholder="Saisis ou colle ton cours ici…" spellcheck="true"></div>
@@ -1593,6 +1595,10 @@
 					if ((node.tagName === "FONT" || node.tagName === "SPAN") && color && isSafeCourseColor(color)) {
 						cleanNode.style.color = color;
 					}
+					const listColor = node.style.getPropertyValue("--course-list-color").trim();
+					if (["OL", "UL"].includes(node.tagName) && listColor && isSafeCourseColor(listColor)) {
+						cleanNode.style.setProperty("--course-list-color", listColor);
+					}
 					const fontSize = node.style.fontSize;
 					if (node.tagName === "SPAN" && fontSize && isSafeCourseFontSize(fontSize)) cleanNode.style.fontSize = fontSize;
 					if (node.tagName === "OL") {
@@ -1600,6 +1606,16 @@
 						if (["roman-upper", "decimal", "alpha-upper", "alpha-lower"].includes(listStyle)) cleanNode.dataset.courseListStyle = listStyle;
 						const listType = node.getAttribute("type");
 						if (["1", "I", "A", "a"].includes(listType)) cleanNode.setAttribute("type", listType);
+						const listStart = Number(node.dataset.courseListStart || node.getAttribute("start"));
+						if (Number.isSafeInteger(listStart) && listStart > 0 && listStart <= 1_000_000) {
+							cleanNode.dataset.courseListStart = String(listStart);
+							cleanNode.setAttribute("start", String(listStart));
+							cleanNode.style.setProperty("--course-list-offset", String(listStart - 1));
+						}
+						const listSeed = Number(node.dataset.courseListSeed);
+						if (Number.isSafeInteger(listSeed) && listSeed > 0 && listSeed <= 1_000_000) {
+							cleanNode.dataset.courseListSeed = String(listSeed);
+						}
 					}
 					if (node.tagName === "UL" && node.classList.contains("course-list-dash")) {
 						cleanNode.classList.add("course-list-dash");
@@ -1672,16 +1688,137 @@
 			rememberCourseSelection();
 		}
 
+		function courseMarkerPattern(style, multiline = false) {
+			const marker = {
+				"roman-upper": "([IVXLCDM]+)",
+				decimal: "(\\d+)",
+				"alpha-upper": "([A-Z])",
+				"alpha-lower": "([a-z])"
+			}[style];
+			return marker ? new RegExp(`^[ \\t]*${marker}\\)(?:[ \\t]+|$)`, multiline ? "gm" : "m") : null;
+		}
+
+		function courseMarkerNumber(marker, style) {
+			if (style === "decimal") return Number(marker);
+			if (style === "alpha-upper" || style === "alpha-lower") return marker.toLowerCase().charCodeAt(0) - 96;
+			const values = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+			let total = 0;
+			for (let index = 0; index < marker.length; index += 1) {
+				const value = values[marker[index]] || 0;
+				total += value < (values[marker[index + 1]] || 0) ? -value : value;
+			}
+			return total;
+		}
+
+		function leadingCourseMarker(text, style) {
+			const pattern = courseMarkerPattern(style);
+			const match = pattern?.exec(text);
+			return match ? { value: courseMarkerNumber(match[1], style), length: match[0].length } : null;
+		}
+
+		function scanCourseMarkerText(text, counters) {
+			for (const style of ["roman-upper", "decimal", "alpha-upper", "alpha-lower"]) {
+				const pattern = courseMarkerPattern(style, true);
+				for (const match of text.matchAll(pattern)) {
+					counters[style] = Math.max(counters[style], courseMarkerNumber(match[1], style));
+				}
+			}
+		}
+
+		function updateCourseListContinuations(forcedList = null, forcedStart = null) {
+			const counters = { "roman-upper": 0, decimal: 0, "alpha-upper": 0, "alpha-lower": 0 };
+			const visit = (node) => {
+				if (node.nodeType === Node.TEXT_NODE) {
+					scanCourseMarkerText(node.textContent || "", counters);
+					return;
+				}
+				if (node.nodeType === Node.ELEMENT_NODE && node.matches("ol[data-course-list-style]")) {
+					const style = node.dataset.courseListStyle;
+					if (Object.hasOwn(counters, style)) {
+						const seed = Number(node.dataset.courseListSeed);
+						const seededStart = Number.isSafeInteger(seed) && seed > 0 ? seed + 1 : 1;
+						const requestedStart = node === forcedList ? forcedStart || 1 : 1;
+						const start = Math.max(counters[style] + 1, seededStart, requestedStart);
+						const itemCount = [...node.children].filter((child) => child.tagName === "LI").length;
+						node.dataset.courseListStart = String(start);
+						node.setAttribute("start", String(start));
+						node.style.setProperty("--course-list-offset", String(start - 1));
+						counters[style] = start + Math.max(0, itemCount - 1);
+					}
+					return;
+				}
+				for (const child of node.childNodes) visit(child);
+			};
+			visit(courseEditor);
+		}
+
+		function getSelectedCourseMarker(style) {
+			const selection = window.getSelection();
+			if (!selection?.rangeCount) return null;
+			const anchor = selection.anchorNode;
+			if (anchor?.nodeType === Node.TEXT_NODE) {
+				const value = anchor.textContent || "";
+				const offset = selection.anchorOffset;
+				const start = value.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
+				const endAt = value.indexOf("\n", offset);
+				const line = value.slice(start, endAt < 0 ? value.length : endAt);
+				const marker = leadingCourseMarker(line, style);
+				if (marker) return marker;
+			}
+			const element = anchor?.nodeType === Node.ELEMENT_NODE ? anchor : anchor?.parentElement;
+			const block = element?.closest("p, li, h2, h3, div");
+			return block && block !== courseEditor ? leadingCourseMarker(block.textContent || "", style) : null;
+		}
+
+		function removeLeadingCourseMarker(list, style) {
+			const item = [...list.children].find((child) => child.tagName === "LI");
+			if (!item) return;
+			const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+			const textNodes = [];
+			let value = "";
+			let node;
+			while ((node = walker.nextNode())) {
+				if (node.parentElement?.closest("ol, ul") !== list) continue;
+				textNodes.push(node);
+				value += node.textContent || "";
+			}
+			const marker = leadingCourseMarker(value, style);
+			if (!marker) return;
+			let remaining = marker.length;
+			for (const textNode of textNodes) {
+				const removeLength = Math.min(remaining, textNode.textContent.length);
+				textNode.textContent = textNode.textContent.slice(removeLength);
+				remaining -= removeLength;
+				if (!remaining) break;
+			}
+		}
+
+		function applyCourseColor(color) {
+			restoreCourseSelection();
+			const selection = window.getSelection();
+			const anchor = selection.anchorNode?.nodeType === Node.ELEMENT_NODE ? selection.anchorNode : selection.anchorNode?.parentElement;
+			const list = anchor?.closest("ol, ul");
+			if (list && courseEditor.contains(list)) {
+				list.style.setProperty("--course-list-color", color);
+			} else {
+				document.execCommand("foreColor", false, color);
+			}
+			rememberCourseSelection();
+		}
+
 		function applyCourseListStyle(style) {
 			restoreCourseSelection();
 			const selection = window.getSelection();
 			const anchor = selection.anchorNode?.nodeType === Node.ELEMENT_NODE ? selection.anchorNode : selection.anchorNode?.parentElement;
 			let currentList = anchor?.closest("ol, ul");
+			const manualMarker = currentList ? null : getSelectedCourseMarker(style);
 			const orderedTypes = { "roman-upper": "I", decimal: "1", "alpha-upper": "A", "alpha-lower": "a" };
 			const isOrderedStyle = Object.hasOwn(orderedTypes, style);
 
 			if (currentList && courseEditor.contains(currentList) && ((isOrderedStyle && currentList.tagName === "UL") || (!isOrderedStyle && currentList.tagName === "OL"))) {
 				const replacement = document.createElement(isOrderedStyle ? "ol" : "ul");
+				const listColor = currentList.style.getPropertyValue("--course-list-color");
+				if (listColor && isSafeCourseColor(listColor)) replacement.style.setProperty("--course-list-color", listColor);
 				while (currentList.firstChild) replacement.append(currentList.firstChild);
 				currentList.replaceWith(replacement);
 				currentList = replacement;
@@ -1696,6 +1833,7 @@
 
 			if (currentList && courseEditor.contains(currentList)) {
 				if (isOrderedStyle) {
+					if (currentList.dataset.courseListStyle && currentList.dataset.courseListStyle !== style) delete currentList.dataset.courseListSeed;
 					currentList.setAttribute("type", orderedTypes[style]);
 					currentList.dataset.courseListStyle = style;
 				} else {
@@ -1705,6 +1843,11 @@
 				const onlyContainsList = wrapper && [...wrapper.childNodes].every((node) => node === currentList || (node.nodeType === Node.TEXT_NODE && !node.textContent.trim()));
 				if (onlyContainsList && wrapper !== courseEditor && ["P", "DIV"].includes(wrapper.tagName)) wrapper.replaceWith(currentList);
 			}
+			if (manualMarker && currentList && courseEditor.contains(currentList)) {
+				currentList.dataset.courseListSeed = String(manualMarker.value);
+				removeLeadingCourseMarker(currentList, style);
+			}
+			updateCourseListContinuations(currentList && manualMarker ? currentList : null, manualMarker ? manualMarker.value + 1 : null);
 			rememberCourseSelection();
 		}
 
@@ -1928,6 +2071,7 @@
 			} else if (courseItem) {
 				renderCurrentCourseFile(courseItem);
 			}
+			updateCourseListContinuations();
 			courseDialog.showModal();
 			if (editingText || !courseItem) courseEditor.focus();
 		}
@@ -2172,7 +2316,10 @@
 		document.addEventListener("selectionchange", rememberCourseSelection);
 		courseEditor.addEventListener("keyup", rememberCourseSelection);
 		courseEditor.addEventListener("mouseup", rememberCourseSelection);
-		courseEditor.addEventListener("input", rememberCourseSelection);
+		courseEditor.addEventListener("input", () => {
+			rememberCourseSelection();
+			updateCourseListContinuations();
+		});
 
 		document.querySelectorAll("[data-course-command]").forEach((button) => {
 			button.addEventListener("mousedown", (event) => event.preventDefault());
@@ -2190,7 +2337,7 @@
 
 		courseTextColor.addEventListener("pointerdown", rememberCourseSelection);
 		courseTextColor.addEventListener("focus", rememberCourseSelection);
-		courseTextColor.addEventListener("change", () => applyCourseCommand("foreColor", courseTextColor.value));
+		courseTextColor.addEventListener("change", () => applyCourseColor(courseTextColor.value));
 
 		coursePhotoInput.addEventListener("change", () => {
 			addPendingCourseFiles(coursePhotoInput.files);
@@ -2230,6 +2377,7 @@
 			courseError.textContent = "";
 			try {
 				if (activeCourseMode === "text") {
+					updateCourseListContinuations();
 					const content = sanitizeCourseMarkup(courseEditor.innerHTML);
 					const plainText = getCoursePlainText(content).trim();
 					if (!plainText) throw new Error("Ajoute du texte avant de continuer.");

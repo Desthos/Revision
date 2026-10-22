@@ -37,6 +37,20 @@ BASE_GEMINI_INSTRUCTIONS = """Le site aide les élèves à réviser à partir de
 Suis précisément la consigne de l’élève. Ne produis pas spontanément de rappel séparé des formules ni de liste de notions « à retenir » : l’élève choisit lui-même ce qu’il veut revoir. Tu peux utiliser les formules nécessaires à l’activité explicitement demandée.
 Formate clairement la réponse en Markdown. Utilise avec parcimonie le gras, le soulignement avec <u>...</u> et la couleur avec <span style="color:#RRGGBB">...</span> (hexadécimal à 6 chiffres), seulement pour faciliter la lecture. N’utilise aucun autre code HTML ni style.
 N’utilise jamais d’emoji ni d’émoticône."""
+RESOURCE_REVIEW_INSTRUCTION = (
+    "Vérifie le cours avant de répondre : contrôle la cohérence des formules, des calculs, des unités et des faits. "
+    "Si tu repères une erreur, signale-la brièvement et propose une correction uniquement si elle est vérifiable. "
+    "Pour les dates présentes dans le cours, vérifie leur exactitude avec Google Search. "
+    "Ne signale jamais que le cours est incomplet, qu’il manque des informations ou qu’il faudrait ajouter des éléments. "
+    "N’invente pas les informations absentes du cours et limite-toi aux faits établis."
+)
+DATE_REFERENCE_RE = re.compile(
+    r"\b(?:\d{1,2}[./-]\d{1,2}[./-](?:\d{2}|\d{4})"
+    r"|\d{1,2}(?:er)?\s+(?:janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)(?:\s+\d{4})?"
+    r"|(?:janvier|février|fevrier|mars|avril|mai|juin|juillet|août|aout|septembre|octobre|novembre|décembre|decembre)\s+\d{4}"
+    r"|(?:1[0-9]{3}|20[0-9]{2}))\b",
+    re.IGNORECASE,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("revision-site")
@@ -607,12 +621,18 @@ def create_resources(request: ResourcesRequest) -> dict[str, str]:
     if not course and not file_inputs:
         course = "Aucun texte ni fichier de cours n’a été ajouté pour ce chapitre."
     full_request = "\n".join(part for part in (request.query, request.refinement_instruction or "") if part)
-    use_search = request_needs_search(full_request)
-    search_instruction = (
-        "Si la demande nécessite des informations externes récentes ou des liens, utilise Google Search pour vérifier les éléments utiles et cite les sources avec leurs liens."
-        if use_search
-        else "N’effectue pas de recherche sur le Web : base ta réponse sur le cours fourni et la demande."
-    )
+    verify_dates = bool(DATE_REFERENCE_RE.search(course))
+    use_search = request_needs_search(full_request) or verify_dates
+    search_instructions = []
+    if request_needs_search(full_request):
+        search_instructions.append(
+            "Si la demande nécessite des informations externes récentes ou des liens, utilise Google Search pour vérifier les éléments utiles et cite les sources avec leurs liens."
+        )
+    if verify_dates:
+        search_instructions.append(
+            "Le cours contient une ou plusieurs dates ou années : utilise Google Search pour en contrôler l’exactitude. Si tu corriges une date, cite la source correspondante."
+        )
+    search_instruction = "\n".join(search_instructions) or "N’effectue pas de recherche sur le Web : base ta réponse sur le cours fourni et la demande."
     attached_names = ", ".join(course_file.name for course_file in request.files) or "aucun"
     refinement_context = ""
     if request.refinement_instruction and request.previous_response:
@@ -633,11 +653,12 @@ Demande de l’élève : {request.query}
 {refinement_context}
 
 Réponds directement à la demande en français, sous forme de texte clair et bien formaté en Markdown.
-Utilise le cours complet et les fichiers joints comme source principale. N’invente pas de faits qui contredisent le cours; si une information nécessaire manque, signale-le brièvement.
+Utilise le cours complet et les fichiers joints comme source principale. N’invente pas de faits qui contredisent le cours.
 Sois le plus synthétique possible. Commence directement par le contenu, sans phrase d’introduction, et ne termine pas par une phrase de conclusion.
 Pour les formules, utilise des délimiteurs LaTeX Markdown : $...$ dans une phrase et $$...$$ sur une ligne séparée pour une formule centrée.
 {search_instruction}
 {BASE_GEMINI_INSTRUCTIONS}
+{RESOURCE_REVIEW_INSTRUCTION}
 """
     return {
         "response": generate_with_gemini(
