@@ -285,8 +285,7 @@
 		.ai-result { max-width: 1120px; min-height: 180px; margin-top: 12px; padding: 22px 24px; border: 1px solid var(--line); border-radius: 10px; color: var(--text); background: rgb(255 255 255 / 2%); font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
 		.ai-saved-resource + .ai-saved-resource { margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
 		.ai-saved-resource-header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-		.ai-saved-resource-header h3 { margin: 0; font-size: 18px; line-height: 1.35; }
-		.ai-saved-resource-tools { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+		.ai-saved-resource-tools { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; }
 		.ai-saved-resource-header time { flex: 0 0 auto; color: var(--muted); font-size: 13px; }
 		.ai-resource-actions, .ai-resource-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 		.ai-resource-action { min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); background: var(--panel); cursor: pointer; font: inherit; font-size: 13px; }
@@ -718,7 +717,7 @@
 								<label for="resources-query">Que veux-tu obtenir ?</label>
 								<input id="resources-query" class="ai-query" type="text" maxlength="2000" required placeholder="Ex. crée une fiche de révision sur le second degré…">
 							</div>
-							<button id="resources-submit" class="primary-button ai-run" type="submit">Demander à Gemini</button>
+							<button id="resources-submit" class="primary-button ai-run" type="submit">Générer</button>
 						</form>
 					</div>
 				</div>
@@ -972,7 +971,7 @@
 			return chapters.find((chapter) => chapter.id === activeCourseChapterId) || null;
 		}
 
-		function getChapterCourseForGemini(chapter) {
+		function getChapterCourseData(chapter) {
 			const courseItems = Array.isArray(chapter.courseItems) ? chapter.courseItems : [];
 			const textSections = [];
 			const files = [];
@@ -986,11 +985,11 @@
 				const match = typeof item.content === "string" && item.content.match(/^data:([^;,]+);base64,([A-Za-z0-9+/=]+)$/);
 				const mimeType = item.type === "image" ? "image/jpeg" : item.mimeType;
 				if (!match || match[1] !== mimeType || !Object.values(supportedCourseMimeTypes).includes(mimeType)) {
-					throw new Error(`Le fichier « ${item.name || "sans nom"} » ne peut pas être transmis à Gemini.`);
+					throw new Error(`Le fichier « ${item.name || "sans nom"} » ne peut pas être transmis au service de génération.`);
 				}
 				files.push({ name: item.name || "cours", mime_type: mimeType, data: match[2] });
 			}
-			if (files.length > 12) throw new Error("Gemini peut recevoir au maximum 12 fichiers par demande.");
+			if (files.length > 12) throw new Error("Le service accepte au maximum 12 fichiers par demande.");
 			if (files.reduce((total, file) => total + file.data.length, 0) > 8_000_000) {
 				throw new Error("Les fichiers du cours dépassent 8 Mo au total. Envoie-en moins à la fois.");
 			}
@@ -1350,14 +1349,14 @@
 			target.replaceChildren(fragment);
 		}
 
-		async function requestGeminiResource(payload) {
+		async function requestResourceGeneration(payload) {
 			const response = await fetch(resourcesApiUrl, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(payload)
 			});
 			if (response.status === 404 || response.status === 405) {
-				throw new Error("L’API Gemini n’est pas disponible sur ce serveur. Démarre l’application avec la commande uvicorn du README.");
+				throw new Error("L’API de génération n’est pas disponible sur ce serveur. Démarre l’application avec la commande uvicorn du README.");
 			}
 			const contentType = response.headers.get("content-type") || "";
 			if (!/json/i.test(contentType)) {
@@ -1380,7 +1379,7 @@
 				throw new Error(`Erreur API HTTP ${response.status}${detail ? ` : ${detail}` : ". Vérifie la configuration du serveur."}`);
 			}
 			const generatedText = typeof result.response === "string" ? result.response.trim() : "";
-			if (!generatedText) throw new Error("Gemini n’a renvoyé aucune ressource. Réessaie.");
+			if (!generatedText) throw new Error("Aucune ressource n’a été renvoyée. Réessaie.");
 			return generatedText;
 		}
 
@@ -1407,9 +1406,6 @@
 
 			const header = document.createElement("div");
 			header.className = "ai-saved-resource-header";
-			const title = document.createElement("h3");
-			title.textContent = resource.query;
-			header.append(title);
 			const tools = document.createElement("div");
 			tools.className = "ai-saved-resource-tools";
 			const timestamp = Date.parse(resource.createdAt);
@@ -1426,7 +1422,7 @@
 			editButton.className = "ai-resource-action";
 			editButton.dataset.resourceAction = "edit";
 			editButton.setAttribute("aria-expanded", "false");
-			editButton.textContent = "Modifier avec Gemini";
+			editButton.textContent = "Modifier";
 			const deleteButton = document.createElement("button");
 			deleteButton.type = "button";
 			deleteButton.className = "ai-resource-action ai-resource-action-delete";
@@ -1456,7 +1452,7 @@
 			const saveButton = document.createElement("button");
 			saveButton.type = "submit";
 			saveButton.className = "primary-button";
-			saveButton.textContent = "Demander à Gemini";
+			saveButton.textContent = "Modifier";
 			const cancelButton = document.createElement("button");
 			cancelButton.type = "button";
 			cancelButton.className = "ai-resource-action";
@@ -1496,9 +1492,9 @@
 			}
 			let courseData;
 			try {
-				courseData = getChapterCourseForGemini(chapter);
+				courseData = getChapterCourseData(chapter);
 			} catch (error) {
-				resourcesStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis à Gemini.";
+				resourcesStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis au service de génération.";
 				return;
 			}
 			if (courseData.course.length > 100000) {
@@ -1508,11 +1504,11 @@
 
 			resourcesRequestInProgress = true;
 			resourcesSubmit.disabled = true;
-			resourcesSubmit.textContent = "Gemini précise…";
+			resourcesSubmit.textContent = "Modification…";
 			resourcesResult.querySelectorAll("button, textarea").forEach((control) => { control.disabled = true; });
-			const stopAiProgress = startAiProgress(resourcesStatus, "Gemini révise la réponse à partir du cours");
+			const stopAiProgress = startAiProgress(resourcesStatus, "Modification de la réponse à partir du cours");
 			try {
-				const generatedText = await requestGeminiResource({
+				const generatedText = await requestResourceGeneration({
 					chapter_title: chapter.title,
 					course: courseData.course,
 					files: courseData.files,
@@ -2550,9 +2546,9 @@
 			}
 			let courseData;
 			try {
-				courseData = getChapterCourseForGemini(chapter);
+				courseData = getChapterCourseData(chapter);
 			} catch (error) {
-				resourcesStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis à Gemini.";
+				resourcesStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis au service de génération.";
 				return;
 			}
 			const { course, files } = courseData;
@@ -2563,11 +2559,11 @@
 
 			resourcesRequestInProgress = true;
 			resourcesSubmit.disabled = true;
-			resourcesSubmit.textContent = "Gemini répond…";
-			const stopAiProgress = startAiProgress(resourcesStatus, "Gemini prépare une réponse à partir du cours");
+			resourcesSubmit.textContent = "Génération…";
+			const stopAiProgress = startAiProgress(resourcesStatus, "Préparation d’une réponse à partir du cours");
 
 			try {
-				const generatedText = await requestGeminiResource({ chapter_title: chapter.title, course, files, query });
+				const generatedText = await requestResourceGeneration({ chapter_title: chapter.title, course, files, query });
 
 				const resource = {
 					id: crypto.randomUUID(),

@@ -54,7 +54,7 @@ DATE_REFERENCE_RE = re.compile(
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("revision-site")
-app = FastAPI(title="Révision Gemini API")
+app = FastAPI(title="Révision API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["null"],
@@ -89,7 +89,7 @@ def get_gemini_client(*, fast_mode: bool = False) -> genai.Client:
     if not api_key:
         raise HTTPException(
             status_code=503,
-            detail=f"GEMINI_API_KEY n’est pas configurée. Ajoute-la dans {BASE_DIR / '.env'}.",
+            detail=f"La clé API du service de génération n’est pas configurée. Ajoute-la dans {BASE_DIR / '.env'}.",
         )
     return genai.Client(
         api_key=api_key,
@@ -179,7 +179,7 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
         provider_message,
         re.IGNORECASE,
     )
-    model_context = f" du modèle Gemini « {model_match.group(1)} »" if model_match else " du modèle Gemini utilisé"
+    model_context = f" du modèle « {model_match.group(1)} »" if model_match else " du modèle utilisé"
     limit_match = re.search(
         r"(?:limit:\s*)?([\d,]+)\s+(requests?|tokens?)\s+per\s+(day|minute|second)",
         provider_message,
@@ -207,12 +207,12 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
         limit_label = "requêtes" if measure.lower().startswith("request") else "jetons"
         period_label = {"minute": "minute", "second": "seconde"}[period.lower()]
         retry = f" Réessaie dans {retry_delay}." if retry_delay else " Attends un peu avant de réessayer."
-        return f"La limite Gemini est atteinte : {amount} {limit_label} par {period_label}.{retry}"
+        return f"La limite de génération est atteinte : {amount} {limit_label} par {period_label}.{retry}"
 
     if retry_delay:
-        return f"Gemini demande d’attendre {retry_delay} avant la prochaine requête. Il s’agit d’une limite de débit ou de quota, pas d’une erreur dans le cours."
+        return f"Le service de génération demande d’attendre {retry_delay} avant la prochaine requête. Il s’agit d’une limite de débit ou de quota, pas d’une erreur dans le cours."
 
-    return "Gemini a atteint une limite de débit ou de quota. Consulte les limites et l’utilisation de ce projet dans Google AI Studio."
+    return "Le service de génération a atteint une limite de débit ou de quota. Consulte les limites et l’utilisation du projet dans Google AI Studio."
 
 
 def _gemini_error_details(
@@ -222,16 +222,16 @@ def _gemini_error_details(
     model: str = MODEL,
 ) -> tuple[int, str]:
     if code in (401, 403):
-        return 502, "La clé Gemini est invalide ou n’a pas accès à ce modèle. Vérifie GEMINI_API_KEY."
+        return 502, "La clé API est invalide ou n’a pas accès à ce modèle. Vérifie la clé et le nom du modèle configurés."
     if code == 404:
-        return 502, f"Le modèle Gemini « {model} » ou l’API demandée est introuvable. Vérifie le nom du modèle configuré."
+        return 502, f"Le modèle « {model} » ou l’API demandée est introuvable. Vérifie le nom du modèle configuré."
     if code == 429:
         return 429, _rate_limit_error_detail(error)
     if code == 503:
-        return 503, "Gemini est temporairement indisponible ou surchargé (HTTP 503). Ce code ne signifie généralement pas que ton quota est atteint; les limites de quota ou de débit sont signalées en HTTP 429. Réessaie dans quelques instants."
+        return 503, "Le service de génération est temporairement indisponible ou surchargé (HTTP 503). Ce code ne signifie généralement pas que ton quota est atteint; les limites de quota ou de débit sont signalées en HTTP 429. Réessaie dans quelques instants."
     if code == 400:
-        return 502, "Gemini a refusé la demande (HTTP 400). Vérifie le modèle et les paramètres de l’API."
-    return 502, f"Gemini n’a pas pu traiter la demande (HTTP {code}). Réessaie dans quelques instants."
+        return 502, "Le service a refusé la demande (HTTP 400). Vérifie le modèle et les paramètres de l’API."
+    return 502, f"La génération a échoué (HTTP {code}). Réessaie dans quelques instants."
 
 
 def _extract_http_status(error: Exception) -> int | None:
@@ -368,7 +368,7 @@ def generate_with_gemini(
                     len(prompt),
                 )
                 return output.strip()
-        raise RuntimeError("Gemini n’a renvoyé aucun texte de réponse.")
+        raise RuntimeError("Aucun texte de réponse n’a été renvoyé.")
     except HTTPException:
         raise
     except genai.errors.APIError as error:
@@ -382,7 +382,7 @@ def generate_with_gemini(
         )
         status_code, detail = _gemini_error_details(status, error, model=active_model) if status is not None else (
             502,
-            "Gemini n’a pas pu traiter la demande. Réessaie dans quelques instants.",
+            "La génération a échoué. Réessaie dans quelques instants.",
         )
         raise HTTPException(status_code=status_code, detail=detail) from error
     except Exception as error:
@@ -393,14 +393,14 @@ def generate_with_gemini(
         if fast_mode and _is_timeout_error(error):
             raise HTTPException(
                 status_code=504,
-                detail="Gemini n’a pas répondu assez vite avec le modèle de secours. Réessaie dans quelques instants.",
+                detail="Le service n’a pas répondu assez vite. Réessaie dans quelques instants.",
             ) from error
         if status is not None:
             status_code, detail = _gemini_error_details(status, error, model=active_model)
             raise HTTPException(status_code=status_code, detail=detail) from error
         raise HTTPException(
             status_code=502,
-            detail="Gemini n’a pas pu traiter la demande. Réessaie dans quelques instants.",
+            detail="La génération a échoué. Réessaie dans quelques instants.",
         ) from error
 
 
@@ -605,7 +605,7 @@ def _course_file_inputs(files: list[CourseFile]) -> tuple[str, list[dict[str, st
 
 @app.get("/api/health")
 def health() -> dict[str, bool]:
-    return {"ok": True, "gemini_configured": bool(get_gemini_api_key())}
+    return {"ok": True, "generation_configured": bool(get_gemini_api_key())}
 
 
 @app.post("/api/resources")
@@ -637,7 +637,7 @@ def create_resources(request: ResourcesRequest) -> dict[str, str]:
     refinement_context = ""
     if request.refinement_instruction and request.previous_response:
         refinement_context = f"""
-Réponse précédente de Gemini à réviser :
+Réponse précédente à réviser :
 {request.previous_response}
 
 Instructions complémentaires de l’élève : {request.refinement_instruction}
@@ -653,6 +653,7 @@ Demande de l’élève : {request.query}
 {refinement_context}
 
 Réponds directement à la demande en français, sous forme de texte clair et bien formaté en Markdown.
+Commence systématiquement chaque ressource par un grand titre principal au format Markdown H1 (`# Titre`), adapté à la demande.
 Utilise le cours complet et les fichiers joints comme source principale. N’invente pas de faits qui contredisent le cours.
 Sois le plus synthétique possible. Commence directement par le contenu, sans phrase d’introduction, et ne termine pas par une phrase de conclusion.
 Pour les formules, utilise des délimiteurs LaTeX Markdown : $...$ dans une phrase et $$...$$ sur une ligne séparée pour une formule centrée.
