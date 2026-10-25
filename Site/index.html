@@ -264,6 +264,38 @@
 		.ai-panel { max-width: 1120px; }
 		.ai-panel-title { margin: 0 0 8px; font-size: 22px; font-weight: 650; }
 		.ai-panel-description { margin: 0 0 22px; color: var(--muted); font-size: 15px; line-height: 1.5; }
+		.revision-settings { display: grid; gap: 16px; max-width: 960px; }
+		.revision-settings-grid { display: grid; grid-template-columns: minmax(180px, .6fr) minmax(220px, 1fr); gap: 16px; }
+		.revision-field { display: grid; align-content: start; gap: 8px; color: #ded9e9; font-size: 14px; }
+		.revision-control { width: 100%; min-height: 48px; padding: 10px 12px; border: 1px solid #514c60; border-radius: 8px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 16px; }
+		.revision-control:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		textarea.revision-control { min-height: 100px; resize: vertical; line-height: 1.5; }
+		.revision-field-wide { grid-column: 1 / -1; }
+		.revision-settings-note { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+		.revision-quiz-form, .revision-result-list { display: grid; gap: 14px; }
+		.revision-quiz-heading { margin: 0; font-size: 20px; }
+		.revision-question-card, .revision-report, .revision-result-card { padding: 18px; border: 1px solid var(--line); border-radius: 9px; background: rgb(255 255 255 / 2%); }
+		.revision-question-number { margin: 0 0 8px; color: var(--mint); font-size: 13px; font-weight: 700; text-transform: uppercase; }
+		.revision-question-prompt { line-height: 1.65; }
+		.revision-question-prompt > :first-child { margin-top: 0; }
+		.revision-question-prompt > :last-child { margin-bottom: 0; }
+		.revision-answer-label { display: block; margin: 16px 0 8px; color: #ded9e9; font-size: 14px; }
+		.revision-answer-input { width: 100%; min-height: 110px; padding: 12px; resize: vertical; border: 1px solid #514c60; border-radius: 8px; outline: none; color: var(--text); background: #14121d; font: inherit; font-size: 16px; line-height: 1.5; }
+		.revision-answer-input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgb(167 139 250 / 15%); }
+		.revision-answer-input:disabled { opacity: .75; }
+		.revision-quiz-actions { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+		.revision-score { margin: 0 0 6px; color: var(--mint); font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; }
+		.revision-report-title, .revision-result-title { margin: 0 0 8px; font-size: 18px; }
+		.revision-report-counts { margin: 0; color: var(--muted); line-height: 1.6; }
+		.revision-ai-comment { margin: 14px 0 0; padding-left: 12px; border-left: 3px solid var(--violet); line-height: 1.6; }
+		.revision-result-card[data-status="correct"] { border-color: rgb(131 224 193 / 55%); }
+		.revision-result-card[data-status="partial"] { border-color: rgb(242 204 135 / 55%); }
+		.revision-result-card[data-status="incorrect"], .revision-result-card[data-status="unanswered"] { border-color: rgb(244 166 189 / 55%); }
+		.revision-result-status { margin: 0 0 10px; color: var(--muted); font-size: 14px; font-weight: 700; }
+		.revision-result-answer { margin: 8px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+		.revision-result-feedback { margin-top: 10px; color: var(--muted); }
+		.revision-result-correction { margin-top: 10px; line-height: 1.6; }
+		.revision-result-correction strong { color: var(--text); }
 		.ai-form { display: flex; align-items: end; gap: 12px; max-width: 960px; }
 		.ai-field { display: grid; flex: 1; gap: 8px; }
 		.ai-field label { color: #ded9e9; font-size: 14px; }
@@ -616,6 +648,9 @@
 			.course-add { width: 100%; }
 			.course-entry { padding: 14px; }
 			.ai-form { align-items: stretch; flex-direction: column; }
+			.revision-settings-grid { grid-template-columns: 1fr; }
+			.revision-field-wide { grid-column: auto; }
+			.revision-settings .primary-button, .revision-quiz-actions .primary-button { width: 100%; }
 			.ai-run { width: 100%; }
 			.ai-result { padding: 16px; }
 			.ai-saved-resource { padding: 16px; }
@@ -719,10 +754,30 @@
 					<section id="chapter-panel-revision" class="chapter-tabpanel" role="tabpanel" aria-labelledby="chapter-tab-revision" tabindex="0" hidden>
 						<div class="ai-panel">
 							<h2 class="ai-panel-title">Révision du chapitre</h2>
-							<p class="ai-panel-description">Génère un quiz à partir du texte saisi dans ce chapitre.</p>
-							<button id="revision-submit" class="primary-button ai-run" type="button">Générer un quiz</button>
+							<p class="ai-panel-description">Réponds aux questions ouvertes à partir du cours. Gemini corrigera tes réponses et préparera un bilan.</p>
+							<form id="revision-settings" class="revision-settings">
+								<div class="revision-settings-grid">
+									<label class="revision-field" for="revision-question-count">Nombre de questions
+										<input id="revision-question-count" class="revision-control" type="number" min="1" max="20" step="1" value="5" required>
+									</label>
+									<label class="revision-field" for="revision-difficulty">Difficulté
+										<select id="revision-difficulty" class="revision-control">
+											<option value="très facile">Très facile</option>
+											<option value="facile">Facile</option>
+											<option value="intermédiaire" selected>Intermédiaire</option>
+											<option value="difficile">Difficile</option>
+											<option value="très difficile">Très difficile</option>
+										</select>
+									</label>
+									<label class="revision-field revision-field-wide" for="revision-instructions">Précisions pour Gemini (facultatif)
+										<textarea id="revision-instructions" class="revision-control" maxlength="2000" placeholder="Ex. insiste sur les expériences et les formules du chapitre."></textarea>
+									</label>
+								</div>
+								<p class="revision-settings-note">Les questions ne sont pas des QCM. Écris tes réponses dans les champs qui apparaîtront après la génération.</p>
+								<button id="revision-submit" class="primary-button ai-run" type="submit">Générer un quiz</button>
+							</form>
 							<p id="revision-status" class="ai-status" role="status" aria-live="polite"></p>
-							<div id="revision-result" class="ai-result" aria-live="polite" hidden></div>
+							<div id="revision-result" class="ai-result revision-result" aria-live="polite" hidden></div>
 						</div>
 					</section>
 				</section>
@@ -894,9 +949,23 @@
 			}
 			return "/api/resources";
 		})();
+		const revisionApiUrl = resourcesApiUrl.replace(/\/resources$/, "/revision");
 		const resourcesStatus = document.querySelector("#resources-status");
 		const resourcesResult = document.querySelector("#resources-result");
 		const resourcesSubmitLabel = resourcesSubmit.textContent;
+		const revisionSettings = document.querySelector("#revision-settings");
+		const revisionQuestionCount = document.querySelector("#revision-question-count");
+		const revisionDifficulty = document.querySelector("#revision-difficulty");
+		const revisionInstructions = document.querySelector("#revision-instructions");
+		const revisionSubmit = document.querySelector("#revision-submit");
+		const revisionSubmitLabel = revisionSubmit.textContent;
+		const revisionStatus = document.querySelector("#revision-status");
+		const revisionResult = document.querySelector("#revision-result");
+		let revisionRequestInProgress = false;
+		let revisionRequestSequence = 0;
+		let stopRevisionProgress = null;
+		let activeRevisionQuiz = null;
+		let activeRevisionCourse = null;
 		const resourceExportDialog = document.querySelector("#resource-export-dialog");
 		const resourceExportForm = document.querySelector("#resource-export-form");
 		const resourceExportFormat = document.querySelector("#resource-export-format");
@@ -1002,6 +1071,7 @@
 			chapterReturnButton.dataset.subject = subjectKey;
 			activeCourseSubjectKey = subjectKey;
 			activeCourseChapterId = chapter.id;
+			resetRevisionQuiz();
 			selectChapterTab(chapterTabs[0]);
 			renderCourseItems();
 			renderChapterResources(chapter);
@@ -1438,6 +1508,295 @@
 			const generatedText = typeof result.response === "string" ? result.response.trim() : "";
 			if (!generatedText) throw new Error("Aucune ressource n’a été renvoyée. Réessaie.");
 			return generatedText;
+		}
+
+		async function requestRevisionApi(url, payload) {
+			const response = await fetch(url, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(payload)
+			});
+			const contentType = response.headers.get("content-type") || "";
+			if (!/json/i.test(contentType)) {
+				throw new Error(`Le serveur n’a pas renvoyé de réponse API JSON (HTTP ${response.status}). Démarre l’application avec la commande uvicorn du README.`);
+			}
+			const result = await response.json().catch(() => null);
+			if (!result || typeof result !== "object") {
+				throw new Error(`La réponse du serveur est invalide (HTTP ${response.status}).`);
+			}
+			if (!response.ok) {
+				const detail = Array.isArray(result.detail)
+					? result.detail.map((issue) => {
+						const field = Array.isArray(issue.loc) ? issue.loc.slice(1).join(".") : "";
+						return [field, issue.msg].filter(Boolean).join(" : ");
+					}).join("; ")
+					: typeof result.detail === "string" ? result.detail : "";
+				throw new Error(`Erreur API HTTP ${response.status}${detail ? ` : ${detail}` : ". Vérifie la configuration du serveur."}`);
+			}
+			return result;
+		}
+
+		function resetRevisionQuiz() {
+			revisionRequestSequence += 1;
+			revisionRequestInProgress = false;
+			if (stopRevisionProgress) {
+				stopRevisionProgress();
+				stopRevisionProgress = null;
+			}
+			activeRevisionQuiz = null;
+			activeRevisionCourse = null;
+			revisionSettings.hidden = false;
+			revisionResult.replaceChildren();
+			revisionResult.hidden = true;
+			revisionStatus.textContent = "";
+			revisionSubmit.disabled = false;
+			revisionSubmit.textContent = revisionSubmitLabel;
+		}
+
+		function renderRevisionQuiz(quiz) {
+			const form = document.createElement("form");
+			form.id = "revision-quiz-form";
+			form.className = "revision-quiz-form";
+			form.setAttribute("aria-label", "Questions du quiz");
+
+			const heading = document.createElement("h3");
+			heading.className = "revision-quiz-heading";
+			heading.textContent = quiz.title;
+			form.append(heading);
+
+			quiz.questions.forEach((question, index) => {
+				const card = document.createElement("section");
+				card.className = "revision-question-card";
+
+				const number = document.createElement("p");
+				number.className = "revision-question-number";
+				number.textContent = `Question ${index + 1} sur ${quiz.questions.length}`;
+				const prompt = document.createElement("div");
+				prompt.className = "revision-question-prompt";
+				renderResourceResponse(question.question, prompt);
+
+				const label = document.createElement("label");
+				label.className = "revision-answer-label";
+				label.htmlFor = `revision-answer-${index + 1}`;
+				label.textContent = "Ta réponse";
+				const answer = document.createElement("textarea");
+				answer.id = label.htmlFor;
+				answer.className = "revision-answer-input";
+				answer.dataset.revisionAnswer = question.id;
+				answer.maxLength = 8000;
+				answer.rows = 4;
+				answer.placeholder = "Écris ta réponse ici…";
+				card.append(number, prompt, label, answer);
+				form.append(card);
+			});
+
+			const actions = document.createElement("div");
+			actions.className = "revision-quiz-actions";
+			const abandon = document.createElement("button");
+			abandon.type = "button";
+			abandon.className = "clear-button";
+			abandon.dataset.revisionReset = "true";
+			abandon.textContent = "Abandonner";
+			const submit = document.createElement("button");
+			submit.type = "submit";
+			submit.className = "primary-button";
+			submit.textContent = "Corriger mes réponses";
+			actions.append(abandon, submit);
+			form.append(actions);
+			revisionResult.replaceChildren(form);
+			revisionResult.hidden = false;
+		}
+
+		function renderRevisionReport(report) {
+			const section = document.createElement("section");
+			section.className = "revision-report";
+			const reportTitle = document.createElement("h3");
+			reportTitle.className = "revision-report-title";
+			reportTitle.textContent = "Bilan du quiz";
+			const score = document.createElement("p");
+			score.className = "revision-score";
+			score.textContent = `${report.score_percent} % de réussite`;
+			const counts = report.counts || {};
+			const countSummary = document.createElement("p");
+			countSummary.className = "revision-report-counts";
+			countSummary.textContent = `${counts.correct || 0} correcte(s) · ${counts.partial || 0} partielle(s) · ${counts.incorrect || 0} erreur(s) · ${counts.unanswered || 0} sans réponse`;
+			const commentTitle = document.createElement("h4");
+			commentTitle.className = "revision-result-title";
+			commentTitle.textContent = "Commentaire de Gemini";
+			const comment = document.createElement("p");
+			comment.className = "revision-ai-comment";
+			comment.textContent = report.comment;
+			section.append(reportTitle, score, countSummary, commentTitle, comment);
+
+			const resultList = document.createElement("div");
+			resultList.className = "revision-result-list";
+			report.results.forEach((item, index) => {
+				const card = document.createElement("article");
+				card.className = "revision-result-card";
+				card.dataset.status = item.status;
+				const labels = {
+					correct: "Bonne réponse",
+					partial: "Réponse partiellement correcte",
+					incorrect: "À corriger",
+					unanswered: "Sans réponse"
+				};
+				const status = document.createElement("p");
+				status.className = "revision-result-status";
+				status.textContent = `Question ${index + 1} · ${labels[item.status] || "Corrigée"} · ${item.points}/2 points`;
+				const prompt = document.createElement("div");
+				prompt.className = "revision-question-prompt";
+				const originalQuestion = activeRevisionQuiz.questions.find((question) => question.id === item.id);
+				renderResourceResponse(originalQuestion?.question || "", prompt);
+				const answerLabel = document.createElement("strong");
+				answerLabel.textContent = "Ta réponse :";
+				const answer = document.createElement("p");
+				answer.className = "revision-result-answer";
+				answer.textContent = item.answer.trim() || "(aucune réponse)";
+				const feedback = document.createElement("p");
+				feedback.className = "revision-result-feedback";
+				feedback.textContent = item.feedback;
+				card.append(status, prompt, answerLabel, answer, feedback);
+				if (item.status !== "correct") {
+					const correction = document.createElement("div");
+					correction.className = "revision-result-correction";
+					const correctionTitle = document.createElement("strong");
+					correctionTitle.textContent = "Réponse attendue : ";
+					const correctionContent = document.createElement("div");
+					renderResourceResponse(item.correction, correctionContent);
+					correction.append(correctionTitle, correctionContent);
+					card.append(correction);
+				}
+				resultList.append(card);
+			});
+
+			const restart = document.createElement("button");
+			restart.type = "button";
+			restart.className = "primary-button";
+			restart.dataset.revisionReset = "true";
+			restart.textContent = "Générer un autre quiz";
+			revisionResult.replaceChildren(section, resultList, restart);
+		}
+
+		async function generateRevisionQuiz(event) {
+			event.preventDefault();
+			if (revisionRequestInProgress || !revisionSettings.reportValidity()) return;
+			const chapter = getActiveCourseChapter();
+			if (!chapter) {
+				revisionStatus.textContent = "Ce chapitre n’est plus disponible.";
+				return;
+			}
+
+			let courseData;
+			try {
+				courseData = getChapterCourseData(chapter);
+			} catch (error) {
+				revisionStatus.textContent = error.message || "Les fichiers du cours ne peuvent pas être transmis au quiz.";
+				return;
+			}
+			if (!courseData.course && !courseData.files.length) {
+				revisionStatus.textContent = "Ajoute le texte ou un fichier de cours dans l’onglet Saisie avant de générer le quiz.";
+				return;
+			}
+			if (courseData.course.length > 100000) {
+				revisionStatus.textContent = "Le texte du cours dépasse 100 000 caractères. Réduis-le avant de générer le quiz.";
+				return;
+			}
+
+			const requestSequence = ++revisionRequestSequence;
+			revisionRequestInProgress = true;
+			activeRevisionQuiz = null;
+			activeRevisionCourse = null;
+			revisionResult.replaceChildren();
+			revisionResult.hidden = true;
+			revisionSubmit.disabled = true;
+			revisionSubmit.textContent = "Génération…";
+			stopRevisionProgress = startAiProgress(revisionStatus, "Gemini prépare les questions à partir du cours");
+			let statusMessage = "";
+			try {
+				const quiz = await requestRevisionApi(revisionApiUrl, {
+					chapter_title: chapter.title,
+					course: courseData.course,
+					files: courseData.files,
+					question_count: Number(revisionQuestionCount.value),
+					difficulty: revisionDifficulty.value,
+					instructions: revisionInstructions.value.trim()
+				});
+				if (requestSequence !== revisionRequestSequence) return;
+				if (!Array.isArray(quiz.questions) || quiz.questions.length !== Number(revisionQuestionCount.value) || quiz.questions.some((item) => !item?.id || !item?.question)) {
+					throw new Error("Le quiz reçu est incomplet. Réessaie.");
+				}
+				activeRevisionQuiz = { ...quiz, chapter_title: chapter.title };
+				activeRevisionCourse = courseData;
+				renderRevisionQuiz(quiz);
+				revisionSettings.hidden = true;
+				statusMessage = "Quiz prêt. Écris tes réponses, puis demande la correction.";
+			} catch (error) {
+				if (requestSequence !== revisionRequestSequence) return;
+				statusMessage = error instanceof TypeError
+					? "Impossible de joindre l’API locale. Démarre server.py avec la commande du README et ouvre http://127.0.0.1:8000."
+					: error.message || "La génération du quiz a échoué. Réessaie.";
+			} finally {
+				if (requestSequence === revisionRequestSequence) {
+					stopRevisionProgress?.();
+					stopRevisionProgress = null;
+					revisionRequestInProgress = false;
+					revisionSubmit.disabled = false;
+					revisionSubmit.textContent = revisionSubmitLabel;
+					revisionStatus.textContent = statusMessage;
+				}
+			}
+		}
+
+		async function gradeRevisionQuiz(event) {
+			const form = event.target.closest("#revision-quiz-form");
+			if (!form) return;
+			event.preventDefault();
+			if (revisionRequestInProgress || !activeRevisionQuiz || !activeRevisionCourse) return;
+
+			const questions = [...form.querySelectorAll("[data-revision-answer]")].map((input) => {
+				const question = activeRevisionQuiz.questions.find((item) => item.id === input.dataset.revisionAnswer);
+				return { id: question.id, question: question.question, answer: input.value };
+			});
+			const submit = form.querySelector('button[type="submit"]');
+			const requestSequence = ++revisionRequestSequence;
+			revisionRequestInProgress = true;
+			form.querySelectorAll("textarea, button").forEach((control) => { control.disabled = true; });
+			submit.textContent = "Correction…";
+			stopRevisionProgress = startAiProgress(revisionStatus, "Gemini corrige les réponses et prépare le bilan");
+			let statusMessage = "";
+			let corrected = false;
+			try {
+				const report = await requestRevisionApi(`${revisionApiUrl}/grade`, {
+					chapter_title: activeRevisionQuiz.chapter_title,
+					course: activeRevisionCourse.course,
+					files: activeRevisionCourse.files,
+					difficulty: activeRevisionQuiz.difficulty,
+					questions
+				});
+				if (requestSequence !== revisionRequestSequence) return;
+				if (!Array.isArray(report.results) || report.results.length !== questions.length || !Number.isFinite(report.score_percent) || typeof report.comment !== "string") {
+					throw new Error("Le compte rendu reçu est incomplet. Réessaie la correction.");
+				}
+				renderRevisionReport(report);
+				corrected = true;
+				statusMessage = "Correction terminée.";
+			} catch (error) {
+				if (requestSequence !== revisionRequestSequence) return;
+				statusMessage = error instanceof TypeError
+					? "Impossible de joindre l’API locale. Démarre server.py avec la commande du README et ouvre http://127.0.0.1:8000."
+					: error.message || "La correction du quiz a échoué. Réessaie.";
+			} finally {
+				if (requestSequence === revisionRequestSequence) {
+					stopRevisionProgress?.();
+					stopRevisionProgress = null;
+					revisionRequestInProgress = false;
+					revisionStatus.textContent = statusMessage;
+					if (!corrected) {
+						form.querySelectorAll("textarea, button").forEach((control) => { control.disabled = false; });
+						submit.textContent = "Corriger mes réponses";
+					}
+				}
+			}
 		}
 
 		function saveChapterResources(chapter, nextResources, successMessage) {
@@ -2831,6 +3190,11 @@
 		document.querySelector("#add-chapter").addEventListener("click", () => openChapterDialog());
 		document.querySelector("#cancel-chapter").addEventListener("click", () => chapterDialog.close());
 		document.querySelector("#cancel-delete").addEventListener("click", () => deleteChapterDialog.close());
+		revisionSettings.addEventListener("submit", generateRevisionQuiz);
+		revisionResult.addEventListener("submit", gradeRevisionQuiz);
+		revisionResult.addEventListener("click", (event) => {
+			if (event.target.closest("[data-revision-reset]")) resetRevisionQuiz();
+		});
 
 		resourcesForm.addEventListener("submit", async (event) => {
 			event.preventDefault();
