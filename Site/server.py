@@ -7,9 +7,12 @@ import re
 import time
 import unicodedata
 import zipfile
+from datetime import datetime, time as datetime_time, timedelta, timezone
+from math import ceil
 from xml.etree import ElementTree
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import httpx
 from dotenv import load_dotenv
@@ -172,6 +175,17 @@ def _format_retry_delay(value: str) -> str:
     return " ".join(f"{amount} {units[unit.lower()]}" for amount, unit in parts)
 
 
+def _time_until_daily_quota_reset() -> str:
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = datetime.now(pacific)
+    next_reset = datetime.combine(now.date() + timedelta(days=1), datetime_time.min, tzinfo=pacific)
+    remaining = next_reset.astimezone(timezone.utc) - now.astimezone(timezone.utc)
+    total_seconds = max(1, ceil(remaining.total_seconds()))
+    hours, remaining_seconds = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remaining_seconds, 60)
+    return f"{hours} h {minutes} min {seconds} s"
+
+
 def _rate_limit_error_detail(error: Exception | None) -> str:
     provider_message = _extract_provider_error_message(error)
     model_match = re.search(
@@ -196,10 +210,12 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
         amount, measure = limit_match.group(1), limit_match.group(2).lower()
         limit_label = "requêtes" if measure.startswith("request") else "jetons"
         tier = " sur le forfait gratuit" if "free tier" in provider_message.lower() else ""
-        retry = f" Réessaie dans {retry_delay} ou après le renouvellement du quota." if retry_delay else " Réessaie après le renouvellement du quota."
+        reset_delay = _time_until_daily_quota_reset()
+        retry = f" Gemini indique de réessayer dans {retry_delay}." if retry_delay else ""
         return (
             f"Le quota journalier{model_context} de ce projet est atteint : {amount} {limit_label} par jour{tier}."
-            f"{retry} Les appels d’autres clés ou applications du même projet comptent aussi. Vérifie l’utilisation de ce modèle dans Google AI Studio."
+            f" Il se renouvelle à minuit, heure du Pacifique, dans environ {reset_delay}.{retry}"
+            " Les appels d’autres clés ou applications du même projet comptent aussi. Vérifie l’utilisation de ce modèle dans Google AI Studio."
         )
 
     if limit_match:
@@ -212,7 +228,13 @@ def _rate_limit_error_detail(error: Exception | None) -> str:
     if retry_delay:
         return f"Le service de génération demande d’attendre {retry_delay} avant la prochaine requête. Il s’agit d’une limite de débit ou de quota, pas d’une erreur dans le cours."
 
-    return "Le service de génération a atteint une limite de débit ou de quota. Consulte les limites et l’utilisation du projet dans Google AI Studio."
+    reset_delay = _time_until_daily_quota_reset()
+    return (
+        "Gemini a atteint une limite de débit ou de quota, sans préciser laquelle. "
+        f"Si c’est le quota journalier, il se renouvelle à minuit, heure du Pacifique, dans environ {reset_delay}. "
+        "Pour une limite par minute ou liée à la facturation, ce délai peut ne pas s’appliquer. "
+        "Consulte les limites et l’utilisation du projet dans Google AI Studio."
+    )
 
 
 def _gemini_error_details(

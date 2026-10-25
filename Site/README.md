@@ -2,9 +2,12 @@
 
 ## Lancement local
 
+Depuis la racine du dépôt (`Revision`), entre d’abord dans le dossier `Site` :
+
 1. Crée l’environnement et installe les dépendances :
 
    ```sh
+cd Site
 python3 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
